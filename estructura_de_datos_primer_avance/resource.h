@@ -1,8 +1,8 @@
 //{{NO_DEPENDENCIES}}
-// Archivo de inclusión generado de Microsoft Visual C++.
-// Usado por estructura_de_datos_primer_avance.rc
+// Microsoft Visual C++ generated include file.
+// Used by estructura_de_datos_primer_avance.rc
 //
-#define ID_iniciosesion                 9
+#define DLG_LOGIN		                9
 #define IDD_registrodecliente           103
 #define IDD_pedidos_clientes            105
 #define IDD_pedidos_del_cliente         105
@@ -59,6 +59,7 @@
 #define ID_PERFIL_MIPERFIL              40015
 #define ID_VENTAS_VENTASPORTIENDA40016  40016
 #define ID_PEDIDOS_PEDIDOSREALIZADOS    40017
+#define DLG_LOGIN                       40017
 #define ID_TIENDA_TIENDA                40018
 #define ID_REGISTRAR_TIENDAS            40019
 #define ID_INICIODESESI40020            40020
