@@ -2,8 +2,7 @@
 // Microsoft Visual C++ generated include file.
 // Used by estructura_de_datos_primer_avance.rc
 //
-#define DLG_LOGIN		                9
-#define IDD_registrodecliente           103
+#define DLG_RC                          103
 #define IDD_pedidos_clientes            105
 #define IDD_pedidos_del_cliente         105
 #define IDD_ventas_por_tienda           107
@@ -12,6 +11,7 @@
 #define IDD_registro_vendedor           112
 #define IDD_perfil                      114
 #define IDD_perfil_cliente              114
+#define DLG_EDITAR_CLIENTE              114
 #define IDD_regsitro_tiendas            116
 #define IDD_registro_tiendas            116
 #define IDD_registro_productos          118
@@ -20,10 +20,15 @@
 #define IDD_informacion_tienda          123
 #define IDD_envios                      125
 #define IDD_perfil_vendedor             131
+#define DLG_DASHBOARD                   133
+#define IDR_MENU3                       135
 #define IDC_btn_iniciarsesion           1001
+#define BTN_LOGIN_LOGIN                 1001
 #define IDC_btn_registrarse             1002
 #define IDC_usuario                     1003
+#define TXT_LOGIN_USER                  1003
 #define IDC_contrasena                  1004
+#define TXT_LOGIN_PASS                  1004
 #define IDC_EDIT1                       1005
 #define IDC_EDIT2                       1006
 #define IDC_EDIT3                       1007
@@ -31,7 +36,7 @@
 #define IDC_EDIT5                       1009
 #define IDC_DATETIMEPICKER1             1010
 #define IDC_BUTTON1                     1011
-#define IDC_DATETIMEPICKER2             1012
+#define BTN_EDITAR_BUSCAR               1012
 #define IDC_DATETIMEPICKER3             1013
 #define IDC_RADIO1                      1014
 #define IDC_RADIO2                      1015
@@ -42,6 +47,25 @@
 #define IDC_LIST1                       1020
 #define IDC_BUTTON2                     1022
 #define IDC_COMBO1                      1037
+#define TXT_RC_NOMBRE                   1038
+#define TXT_RC_APELLIDOP                1039
+#define TXT_RC_APELLIDOM                1040
+#define TXT_RC_DIRECCION                1041
+#define TXT_RC_USUARIO                  1042
+#define TXT_RC_CONTRA                   1043
+#define BTN_RC_REGISTRAR                1044
+#define LBL_DASHBOARD_CLIENTES          1045
+#define LIS_DASHBOARD_CLIENTES          1046
+#define TXT_EDITAR_BUSCAR               1047
+#define RD_EDITAR_ACTIVO                1048
+#define RD_EDITAR_SUSPENDIDO            1049
+#define TXT_EDITAR_NOMBRE               1050
+#define TXT_EDITAR_APELLIDOP            1051
+#define TXT_EDITAR_APELLIDOM            1052
+#define TXT_EDITAR_USUARIO              1053
+#define TXT_EDITAR_DIRECCION            1054
+#define TXT_EDITAR_CONTRA               1055
+#define BTN_EDITAR_MODIFICAR            1056
 #define ID_INICIODESESI40001            40001
 #define ID_PEDIDOS_PEDIDOSDELCLIENTE    40002
 #define ID_VENTAS_VENTASPORTIENDA       40003
@@ -77,14 +101,25 @@
 #define ID_SALIR_SALIRDELPROGRAMA       40032
 #define ID_TIENDA_TIENDA40033           40033
 #define ID_INICIODESESI40034            40034
+#define ID_REGISTRAR_PRODUCTOS40035     40035
+#define ID_REGISTRAR_PRODUCTOS40036     40036
+#define ID_REGISTRAR_TIENDAS40035       40037
+#define ID_REGISTRAR_CLIENTES           40038
+#define BTNMENU_REGISTRAR_TIENDAS       40039
+#define BTNMENU_REGISTRAR_CLIENTES      40040
+#define BTNMENU_REGISTRAR_PRODUCTOS     40041
+#define ID_SALIR_SALIR40042             40042
+#define BTNMENU_SALIR                   40043
+#define BTNMENU_SALIR_CERRARSESI        40046
+#define BTNMENU_EDITAR_CLIENTES         40048
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        133
-#define _APS_NEXT_COMMAND_VALUE         40035
-#define _APS_NEXT_CONTROL_VALUE         1038
+#define _APS_NEXT_RESOURCE_VALUE        136
+#define _APS_NEXT_COMMAND_VALUE         40049
+#define _APS_NEXT_CONTROL_VALUE         1057
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
