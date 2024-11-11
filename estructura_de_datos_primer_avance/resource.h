@@ -13,7 +13,7 @@
 #define IDD_perfil_cliente              114
 #define DLG_EDITAR_CLIENTE              114
 #define DLG_REGISTRAR_TIENDA            116
-#define IDD_registro_productos          118
+#define DLG_REGISTRAR_PRODUCTOS         118
 #define IDR_MENU2                       120
 #define IDD_compra_de_productos         121
 #define DLG_EDITAR_TIENDA               123
@@ -45,7 +45,7 @@
 #define IDC_EDIT8                       1019
 #define IDC_LIST1                       1020
 #define IDC_BUTTON2                     1022
-#define IDC_COMBO1                      1037
+#define CMB_RP_TIENDAS                  1037
 #define TXT_RC_NOMBRE                   1038
 #define TXT_RC_APELLIDOP                1039
 #define TXT_RC_APELLIDOM                1040
@@ -84,6 +84,21 @@
 #define TXT_EDITART_FECHACT             1073
 #define RB_EDITART_ACTIVO               1074
 #define RB_EDITART_SUSP                 1075
+#define TXT_RP_PRECIO                   1076
+#define TXT_RP_COSTO                    1077
+#define TXT_RP_EXIS                     1078
+#define BTN_RP_REGISTRAR                1079
+#define LBL_RP_NOMBRE                   1080
+#define LBL_RP_CODIGO                   1081
+#define LBL_RP_PRECIO                   1082
+#define LBL_RP_COSTO                    1083
+#define LBL_RP_EXIST                    1084
+#define LBL_RP_TIENDA                   1085
+#define LBL_RP_TITULO                   1086
+#define TXT_RP_NOMBRE                   1087
+#define TXT_RP_CODIGO                   1088
+#define LIST_DASHBOARD_PROD             1089
+#define LBL_DASHBOARD_PROD              1090
 #define ID_INICIODESESI40001            40001
 #define ID_PEDIDOS_PEDIDOSDELCLIENTE    40002
 #define ID_VENTAS_VENTASPORTIENDA       40003
@@ -139,7 +154,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        136
 #define _APS_NEXT_COMMAND_VALUE         40053
-#define _APS_NEXT_CONTROL_VALUE         1073
+#define _APS_NEXT_CONTROL_VALUE         1082
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

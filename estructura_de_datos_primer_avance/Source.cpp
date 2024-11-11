@@ -8,6 +8,7 @@
 #include <ctime>
 #include <string>
 #include <vector>
+#include <cctype>
 
 using namespace std;
 
@@ -21,7 +22,7 @@ int idTiendaEditar = 0;
 
 // Función para obtener la fecha actual
 string obtenerFechaActual();
-
+bool esNumero(const char* cadena);
 //----------------------------------------------------------------CLIENTES-----------------------------------------------------------------
 
 // Estructura del Cliente (nodo del árbol)
@@ -48,6 +49,7 @@ struct Cliente {
         izquierda(nullptr), derecha(nullptr) {}
 };
 
+//Estructura de teindas (listas doblemente ligadas)
 struct Tienda {
     int id;                       // ID único de la tienda
     string nombre;                // Nombre de la tienda
@@ -61,6 +63,36 @@ struct Tienda {
     Tienda(int id, const string& nombre, const string& direccion)
         : id(id), nombre(nombre), direccion(direccion), estatus("Activa"),
         fechaCambioEstatus(obtenerFechaActual()), anterior(nullptr), siguiente(nullptr) {}
+};
+
+// Estructura de Producto (listas doblemente ligadas)
+struct Producto {
+    string codigo;                   // Código único del producto
+    string nombre;                // Nombre del producto
+    double precio;                // Precio del producto
+    double costo;                 // Costo del producto
+    int existencias;              // Cantidad en existencia
+    int tienda;                     // id a la tienda que ofrece el producto
+    string estatus;               // Estatus del producto ("Disponible", "No disponible", etc.)
+    string fechaCambioEstatus;    // Fecha de cambio de estatus
+    Producto* anterior;           // Puntero al nodo anterior en la lista doblemente ligada
+    Producto* siguiente;          // Puntero al siguiente nodo en la lista doblemente ligada
+
+    // Constructor de Producto
+    Producto(const string& codigo, const string& nombre, double precio, double costo, int existencias, int tienda)
+        : codigo(codigo), nombre(nombre), precio(precio), costo(costo), existencias(existencias),
+        tienda(tienda), estatus("Disponible"), fechaCambioEstatus(obtenerFechaActual()),
+        anterior(nullptr), siguiente(nullptr) {
+        // Validaciones
+        if (precio < 0 || costo < 0 || existencias < 0) {
+            MessageBox(nullptr, "El precio, costo y existencias no pueden ser negativos", "Error", MB_OK | MB_ICONERROR);
+            throw std::invalid_argument("Los valores no pueden ser negativos");
+        }
+        if (nombre.empty()) {
+            MessageBox(nullptr, "El nombre del producto no puede estar vacío", "Error", MB_OK | MB_ICONERROR);
+            throw std::invalid_argument("El nombre no puede estar vacío");
+        }
+    }
 };
 
 // Función para agregar un cliente al árbol
@@ -105,7 +137,17 @@ void mostrarTiendasEnListBox(Tienda* cabeza, HWND hwndListBox);
 
 void actualizarTienda(Tienda*& cabeza, int idTiendaEditar, HWND hwnd);
 
+void cargarTiendasEnComboBox(HWND hwndComboBox, Tienda* cabezaTiendas);
+
 Tienda* cabezaTienda = cargarTiendas("tiendas.bin");
+
+void agregarProducto(Producto*& cabeza, const string& codigo, const string& nombre, double precio, double costo, int existencias, int tienda);
+void liberarProductos(Producto*& cabeza);
+void guardarProductos(Producto* cabeza, const string& nombreArchivo);
+Producto* cargarProductos(const string& nombreArchivo);
+void mostrarProductosEnListBox(Producto* cabeza, HWND hwndListBox);
+
+Producto* cabezaProductos = cargarProductos("productos.bin");
 
 INT_PTR CALLBACK fVentanaLogin(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaDashboard(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -113,6 +155,7 @@ INT_PTR CALLBACK fVentanaRClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaRTienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaETienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK fVentanaRProductos(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrev, PSTR cmdline, int nCmdShow) {
 
@@ -146,6 +189,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrev, PSTR cmdline, int nCmdS
     }
 
     guardarTiendas(cabezaTienda, "tiendas.bin");
+
+    guardarProductos(cabezaProductos, "productos.bin");
+
+    //Liberar memoria de productos
+    liberarProductos(cabezaProductos);
 
     // Liberar memoria de las tiendas al cerrar el programa
     eliminarTiendas(cabezaTienda);
@@ -220,11 +268,20 @@ INT_PTR CALLBACK fVentanaDashboard(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
         HWND hwndListBoxTiendas = GetDlgItem(hwnd, LIST_DASHBOARD_TIENDAS);
         mostrarTiendasEnListBox(cabezaTienda, hwndListBoxTiendas);
 
+        HWND hwndListBoxProductos = GetDlgItem(hwnd, LIST_DASHBOARD_PROD);
+        mostrarProductosEnListBox(cabezaProductos, hwndListBoxProductos);
+
         return TRUE; // Devuelve TRUE para indicar que se ha inicializado correctamente
     }
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_REGISTRAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_PRODUCTOS), hwnd, fVentanaRProductos);
+        }break;
         case BTNMENU_EDITAR_TIENDAS: {
             EndDialog(hwnd, IDOK);
 
@@ -298,6 +355,12 @@ INT_PTR CALLBACK fVentanaRClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_REGISTRAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_PRODUCTOS), hwnd, fVentanaRProductos);
+        }break;
         case BTNMENU_EDITAR_TIENDAS: {
             EndDialog(hwnd, IDOK);
 
@@ -398,6 +461,12 @@ INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_REGISTRAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_PRODUCTOS), hwnd, fVentanaRProductos);
+        }break;
         case BTNMENU_EDITAR_TIENDAS: {
             EndDialog(hwnd, IDOK);
 
@@ -536,6 +605,12 @@ INT_PTR CALLBACK fVentanaRTienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_REGISTRAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_PRODUCTOS), hwnd, fVentanaRProductos);
+        }break;
         case BTNMENU_EDITAR_TIENDAS: {
             EndDialog(hwnd, IDOK);
 
@@ -657,6 +732,12 @@ INT_PTR CALLBACK fVentanaETienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             }
         }
         switch (LOWORD(wParam)) {
+        case BTNMENU_REGISTRAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_PRODUCTOS), hwnd, fVentanaRProductos);
+        }break;
         case BTNMENU_DASHBOARD: {
             EndDialog(hwnd, IDOK);
 
@@ -699,6 +780,132 @@ INT_PTR CALLBACK fVentanaETienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
         case BTN_EDITART_MODIFICAR: {
             actualizarTienda(cabezaTienda, idTiendaEditar, hwnd);
         }break;
+
+        }
+
+        break;
+
+    case WM_DESTROY:
+        PostQuitMessage(9);
+        break;
+    }
+    return FALSE;
+}
+
+INT_PTR CALLBACK fVentanaRProductos(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    switch (msg) {
+    case WM_CLOSE:
+        DestroyWindow(hwnd);
+        break;
+
+    case WM_INITDIALOG: {
+        // Cargar y asignar el menú (si es necesario y aplicable para un diálogo)
+        HMENU hMenu = LoadMenu((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(IDR_MENU3));
+        if (hMenu) {
+            SetMenu(hwnd, hMenu);
+        }
+        HWND hwndComboBox = GetDlgItem(hwnd, CMB_RP_TIENDAS); // Reemplaza IDC_COMBO_TIENDAS con el ID de tu comboBox
+
+        cargarTiendasEnComboBox(hwndComboBox, cabezaTienda);
+
+        return TRUE; // Devuelve TRUE para indicar que se ha inicializado correctamente
+    }
+
+    case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+        case BTNMENU_DASHBOARD: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
+            break;
+        }
+        case BTNMENU_SALIR: // Si tienes un botón de salir o algo similar
+            EndDialog(hwnd, 0);  // Cierra la ventana de dashboard
+            break;
+
+        case BTNMENU_SALIR_CERRARSESI: {
+            usuarioLogueado = 0;
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_LOGIN), hwnd, fVentanaLogin);
+        }break;
+
+        case BTNMENU_EDITAR_CLIENTES: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_CLIENTE), hwnd, fVentanaEClientes);
+        }break;
+
+        case BTNMENU_REGISTRAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_TIENDA), hwnd, fVentanaRTienda);
+        }break;
+
+        case BTNMENU_EDITAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_TIENDA), hwnd, fVentanaETienda);
+        }break;
+
+        case BTNMENU_REGISTRAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_PRODUCTOS), hwnd, fVentanaRProductos);
+        }break;
+
+        case BTN_RP_REGISTRAR: {
+            char nombre[30];
+            char codigo[30];
+            char precio[30];
+            char costo[30];
+            char existencias[30];
+            int tiendaID = -1; // Inicializamos con un valor inválido
+
+            GetDlgItemText(hwnd, TXT_RP_NOMBRE, nombre, sizeof(nombre));
+            GetDlgItemText(hwnd, TXT_RP_CODIGO, codigo, sizeof(codigo));
+            GetDlgItemText(hwnd, TXT_RP_PRECIO, precio, sizeof(precio));
+            GetDlgItemText(hwnd, TXT_RP_COSTO, costo, sizeof(costo));
+            GetDlgItemText(hwnd, TXT_RP_EXIS, existencias, sizeof(existencias));
+
+            // Obtener el índice seleccionado en el comboBox
+            HWND hwndComboBox = GetDlgItem(hwnd, CMB_RP_TIENDAS); // Reemplaza IDC_COMBO_TIENDAS con el ID de tu comboBox
+            int indiceSeleccionado = SendMessage(hwndComboBox, CB_GETCURSEL, 0, 0);
+
+            if (indiceSeleccionado != CB_ERR) {
+                // Obtener el ID de la tienda asociado al índice seleccionado
+                tiendaID = SendMessage(hwndComboBox, CB_GETITEMDATA, indiceSeleccionado, 0);
+            }
+            else {
+                MessageBox(hwnd, "Por favor selecciona una tienda.", "Error", MB_OK);
+                break;
+            }
+            // Validar que todos los campos obligatorios estén llenos
+            if (strlen(nombre) == 0 || strlen(codigo) == 0 || strlen(precio) == 0 || strlen(costo) == 0 || strlen(existencias) == 0) {
+                MessageBox(hwnd, "Todos los campos son obligatorios", "Error", MB_OK);
+                break;
+            }
+
+            // Validar que los campos "precio", "costo" y "existencias" sean números
+            if (!esNumero(precio) || !esNumero(costo) || !esNumero(existencias)) {
+                MessageBox(hwnd, "Los campos 'precio', 'costo' y 'existencias' deben contener solo números.", "Error", MB_OK);
+                break;
+            }
+
+
+            double precioDouble = std::stod(precio);
+            double costoDouble = std::stod(costo);
+            int existenciasInt = std::stoi(existencias);
+            agregarProducto(cabezaProductos, codigo, nombre, precioDouble, costoDouble, existenciasInt, tiendaID);
+            MessageBox(nullptr, "Se ha agregado la tienda correctamente", "Info", MB_ICONINFORMATION);
+        } break;
+
 
         }
 
@@ -1146,7 +1353,7 @@ void eliminarTiendas(Tienda*& cabeza) {
 // Función para mostrar las tiendas en un ListBox (solo el nombre)
 void mostrarTiendasEnListBox(Tienda* cabeza, HWND hwndListBox) {
     if (cabeza == nullptr) {
-        SendMessage(hwndListBox, LB_ADDSTRING, 0, (LPARAM)"no hay tiendas");
+        SendMessage(hwndListBox, LB_ADDSTRING, 0, (LPARAM)"No hay tiendas");
         MessageBox(nullptr, "No hay tiendas para mostrar.", "Información", MB_ICONINFORMATION);
         return;
     }
@@ -1156,8 +1363,9 @@ void mostrarTiendasEnListBox(Tienda* cabeza, HWND hwndListBox) {
 
     Tienda* actual = cabeza;
     while (actual != nullptr) {
-        // Agregar el nombre de la tienda al ListBox
-        SendMessage(hwndListBox, LB_ADDSTRING, 0, (LPARAM)actual->nombre.c_str());
+        // Formatear la cadena para mostrar el ID y el nombre de la tienda
+        std::string tiendaInfo = "ID: " + std::to_string(actual->id) + " - " + actual->nombre;
+        SendMessage(hwndListBox, LB_ADDSTRING, 0, (LPARAM)tiendaInfo.c_str());
         actual = actual->siguiente;
     }
 }
@@ -1212,4 +1420,247 @@ void actualizarTienda(Tienda*& cabeza, int idTiendaEditar, HWND hwnd) {
 
     // Si no se encuentra la tienda
     MessageBox(hwnd, "Tienda no encontrada", "Error", MB_OK | MB_ICONERROR);
+}
+
+// Función para cargar las tiendas en el comboBox
+void cargarTiendasEnComboBox(HWND hwndComboBox, Tienda* cabezaTiendas) {
+    // Limpiar el ComboBox antes de agregar nuevos elementos
+    SendMessage(hwndComboBox, CB_RESETCONTENT, 0, 0);
+
+    Tienda* actual = cabezaTiendas;
+    while (actual != nullptr) {
+        // Agregar el nombre de la tienda al ComboBox
+        int indice = SendMessage(hwndComboBox, CB_ADDSTRING, 0, (LPARAM)actual->nombre.c_str());
+
+        // Asociar el ID de la tienda con el elemento recién añadido
+        SendMessage(hwndComboBox, CB_SETITEMDATA, indice, (LPARAM)actual->id);
+
+        actual = actual->siguiente;
+    }
+}
+
+
+int obtenerIdTiendaPorIndice(HWND hwndComboBox, Tienda* cabezaTiendas) {
+    int indiceSeleccionado = SendMessage(hwndComboBox, CB_GETCURSEL, 0, 0);  // Obtener el índice seleccionado
+
+    if (indiceSeleccionado == CB_ERR) {
+        // Si no hay selección válida, retornar un valor inválido
+        return -1;
+    }
+
+    // Asumimos que el índice corresponde al orden de las tiendas
+    Tienda* actual = cabezaTiendas;
+    int indiceActual = 0;
+
+    while (actual != nullptr) {
+        if (indiceActual == indiceSeleccionado) {
+            // Devolver el ID de la tienda directamente
+            return actual->id;
+        }
+        actual = actual->siguiente;
+        indiceActual++;
+    }
+
+    return -1;
+}
+
+
+//------------------------------------Gestion de PRODUCTOS------------------------------------------------------------------
+
+void agregarProducto(Producto*& cabeza, const string& codigo, const string& nombre, double precio, double costo, int existencias, int tienda) {
+    if (existencias < 0) {
+        MessageBox(nullptr, "No se puede agregar el producto. Las existencias no pueden ser negativas.", "Error", MB_OK | MB_ICONERROR);
+        return;
+    }
+
+    // Verificar si el código ya existe
+    Producto* actual = cabeza;
+    while (actual != nullptr) {
+        if (actual->codigo == codigo) {
+            MessageBox(nullptr, "No se puede agregar el producto. Ya existe un producto con el mismo código.", "Error", MB_OK | MB_ICONERROR);
+            return;
+        }
+        actual = actual->siguiente;
+    }
+
+    // Crear el nuevo producto
+    Producto* nuevoProducto = new Producto(codigo, nombre, precio, costo, existencias, tienda);
+
+    if (cabeza == nullptr) {
+        // Si la lista está vacía, la nueva tienda será la cabeza
+        cabeza = nuevoProducto;
+    }
+    else {
+        // Insertar al final de la lista
+        actual = cabeza;
+        while (actual->siguiente != nullptr) {
+            actual = actual->siguiente;
+        }
+        actual->siguiente = nuevoProducto;
+        nuevoProducto->anterior = actual;
+    }
+}
+
+void liberarProductos(Producto*& cabeza) {
+    Producto* actual = cabeza;
+    while (actual != nullptr) {
+        Producto* siguiente = actual->siguiente; // Guardamos el siguiente nodo
+        delete actual; // Liberamos la memoria del nodo actual
+        actual = siguiente; // Avanzamos al siguiente nodo
+    }
+    cabeza = nullptr; // Aseguramos que la cabeza apunte a nullptr después de liberar
+}
+
+void guardarProductos(Producto* cabeza, const string& nombreArchivo) {
+    ofstream archivo(nombreArchivo, ios::binary);
+    if (!archivo) {
+        MessageBox(nullptr, "No se pudo abrir el archivo para guardar productos.", "Error", MB_OK | MB_ICONERROR);
+        return;
+    }
+
+    Producto* actual = cabeza;
+    while (actual != nullptr) {
+        // Guardamos el código del producto
+        size_t codigoSize = actual->codigo.size();
+        archivo.write(reinterpret_cast<char*>(&codigoSize), sizeof(codigoSize));
+        archivo.write(actual->codigo.c_str(), codigoSize);
+
+        // Guardamos el nombre del producto
+        size_t nombreSize = actual->nombre.size();
+        archivo.write(reinterpret_cast<char*>(&nombreSize), sizeof(nombreSize));
+        archivo.write(actual->nombre.c_str(), nombreSize);
+
+        // Guardamos el precio y costo
+        archivo.write(reinterpret_cast<char*>(&actual->precio), sizeof(actual->precio));
+        archivo.write(reinterpret_cast<char*>(&actual->costo), sizeof(actual->costo));
+
+        // Guardamos las existencias
+        archivo.write(reinterpret_cast<char*>(&actual->existencias), sizeof(actual->existencias));
+
+        // Guardamos el id de la tienda
+        archivo.write(reinterpret_cast<char*>(&actual->tienda), sizeof(actual->tienda));
+
+        // Guardamos el estatus
+        size_t estatusSize = actual->estatus.size();
+        archivo.write(reinterpret_cast<char*>(&estatusSize), sizeof(estatusSize));
+        archivo.write(actual->estatus.c_str(), estatusSize);
+
+        // Guardamos la fecha de cambio de estatus
+        size_t fechaCambioEstatusSize = actual->fechaCambioEstatus.size();
+        archivo.write(reinterpret_cast<char*>(&fechaCambioEstatusSize), sizeof(fechaCambioEstatusSize));
+        archivo.write(actual->fechaCambioEstatus.c_str(), fechaCambioEstatusSize);
+
+        // Avanzamos al siguiente producto
+        actual = actual->siguiente;
+    }
+
+    archivo.close();
+   
+}
+
+
+Producto* cargarProductos(const string& nombreArchivo) {
+    ifstream archivo(nombreArchivo, ios::binary);
+    if (!archivo) {
+        MessageBox(nullptr, "No se pudo abrir el archivo de productos para cargar.", "Error", MB_OK | MB_ICONERROR);
+        return nullptr;
+    }
+
+    Producto* cabeza = nullptr;
+    Producto* cola = nullptr; // Para mantener el último nodo
+
+    while (true) {
+        // Creamos un nodo temporal para el producto
+        Producto* nuevoProducto = nullptr;
+
+        // Leemos el tamaño y código del producto
+        size_t codigoSize;
+        archivo.read(reinterpret_cast<char*>(&codigoSize), sizeof(codigoSize));
+        if (archivo.eof()) break; // Si alcanzamos el final, terminamos la carga
+
+        string codigo(codigoSize, '\0');
+        archivo.read(&codigo[0], codigoSize);
+
+        // Leemos el nombre del producto
+        size_t nombreSize;
+        archivo.read(reinterpret_cast<char*>(&nombreSize), sizeof(nombreSize));
+        string nombre(nombreSize, '\0');
+        archivo.read(&nombre[0], nombreSize);
+
+        // Leemos precio, costo y existencias
+        double precio, costo;
+        int existencias, tienda;
+        archivo.read(reinterpret_cast<char*>(&precio), sizeof(precio));
+        archivo.read(reinterpret_cast<char*>(&costo), sizeof(costo));
+        archivo.read(reinterpret_cast<char*>(&existencias), sizeof(existencias));
+        archivo.read(reinterpret_cast<char*>(&tienda), sizeof(tienda));
+
+        // Leemos el estatus
+        size_t estatusSize;
+        archivo.read(reinterpret_cast<char*>(&estatusSize), sizeof(estatusSize));
+        string estatus(estatusSize, '\0');
+        archivo.read(&estatus[0], estatusSize);
+
+        // Leemos la fecha de cambio de estatus
+        size_t fechaCambioEstatusSize;
+        archivo.read(reinterpret_cast<char*>(&fechaCambioEstatusSize), sizeof(fechaCambioEstatusSize));
+        string fechaCambioEstatus(fechaCambioEstatusSize, '\0');
+        archivo.read(&fechaCambioEstatus[0], fechaCambioEstatusSize);
+
+        // Creamos el nuevo producto
+        try {
+            nuevoProducto = new Producto(codigo, nombre, precio, costo, existencias, tienda);
+            nuevoProducto->estatus = estatus;
+            nuevoProducto->fechaCambioEstatus = fechaCambioEstatus;
+        }
+        catch (const std::invalid_argument&) {
+            // Si el producto no es válido, continuamos con el siguiente
+            continue;
+        }
+
+        // Añadimos el nuevo producto a la lista
+        if (cabeza == nullptr) {
+            cabeza = nuevoProducto;
+            cola = nuevoProducto;
+        }
+        else {
+            cola->siguiente = nuevoProducto;
+            nuevoProducto->anterior = cola;
+            cola = nuevoProducto;
+        }
+    }
+
+    archivo.close();
+    return cabeza;
+}
+
+
+void mostrarProductosEnListBox(Producto* cabeza, HWND hwndListBox) {
+    if (cabeza == nullptr) {
+        SendMessage(hwndListBox, LB_ADDSTRING, 0, (LPARAM)"No hay productos");
+        MessageBox(nullptr, "No hay productos para mostrar.", "Información", MB_ICONINFORMATION);
+        return;
+    }
+
+    // Limpiar el ListBox antes de agregar nuevos elementos
+    SendMessage(hwndListBox, LB_RESETCONTENT, 0, 0);
+
+    Producto* actual = cabeza;
+    while (actual != nullptr) {
+        // Formatear la cadena para mostrar la información del producto
+        std::string productoInfo = (actual->codigo) + " " + actual->nombre;
+
+        SendMessage(hwndListBox, LB_ADDSTRING, 0, (LPARAM)productoInfo.c_str());
+        actual = actual->siguiente;
+    }
+}
+
+
+bool esNumero(const char* cadena) {
+    for (int i = 0; cadena[i] != '\0'; i++) {
+        if (!isdigit(cadena[i]) && cadena[i] != '.') {
+            return false; // Si el carácter no es un dígito o un punto decimal, no es un número
+        }
+    }
+    return true;
 }
