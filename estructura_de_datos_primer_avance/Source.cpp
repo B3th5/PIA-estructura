@@ -12,8 +12,13 @@
 using namespace std;
 
 int ultimoID = 0;
+int ultimoIDTienda = 0;
+
 int usuarioLogueado = 0;
+
 int idClienteEditar = 0;
+int idTiendaEditar = 0;
+
 // Función para obtener la fecha actual
 string obtenerFechaActual();
 
@@ -43,6 +48,20 @@ struct Cliente {
         izquierda(nullptr), derecha(nullptr) {}
 };
 
+struct Tienda {
+    int id;                       // ID único de la tienda
+    string nombre;                // Nombre de la tienda
+    string direccion;             // Dirección de la tienda
+    string estatus;               // Estatus de la tienda ("Activa", "Inactiva", etc.)
+    string fechaCambioEstatus;    // Fecha de cambio de estatus
+    Tienda* anterior;             // Puntero al nodo anterior en la lista doblemente ligada
+    Tienda* siguiente;            // Puntero al siguiente nodo en la lista doblemente ligada
+
+    // Constructor de Tienda
+    Tienda(int id, const string& nombre, const string& direccion)
+        : id(id), nombre(nombre), direccion(direccion), estatus("Activa"),
+        fechaCambioEstatus(obtenerFechaActual()), anterior(nullptr), siguiente(nullptr) {}
+};
 
 // Función para agregar un cliente al árbol
 Cliente* agregarCliente(Cliente* raiz, int id, const string& nombre, const string& apellidoPaterno, const string& apellidoMaterno, const string& usuario, const string& contrasenia, const string& estatus, const string& fechaActualizo, int idUsuarioActualizo);
@@ -70,10 +89,30 @@ Cliente* buscarClientePorUsuario(Cliente* raiz, const string& usuario);
 
 Cliente* raiz = nullptr;
 
+
+
+// Función para guardar tiendas en un archivo binario
+void guardarTiendas(Tienda* cabeza, const string& nombreArchivo);
+
+// Función para cargar tiendas desde un archivo binario
+Tienda* cargarTiendas(const string& nombreArchivo);
+
+void agregarTienda(Tienda*& cabeza, int id, const string& nombre, const string& direccion);
+
+void eliminarTiendas(Tienda*& cabeza);
+
+void mostrarTiendasEnListBox(Tienda* cabeza, HWND hwndListBox);
+
+void actualizarTienda(Tienda*& cabeza, int idTiendaEditar, HWND hwnd);
+
+Tienda* cabezaTienda = cargarTiendas("tiendas.bin");
+
 INT_PTR CALLBACK fVentanaLogin(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaDashboard(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaRClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK fVentanaRTienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK fVentanaETienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrev, PSTR cmdline, int nCmdShow) {
 
@@ -105,6 +144,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrev, PSTR cmdline, int nCmdS
         guardarDatos(raiz, archivoSalida);
         archivoSalida.close();
     }
+
+    guardarTiendas(cabezaTienda, "tiendas.bin");
+
+    // Liberar memoria de las tiendas al cerrar el programa
+    eliminarTiendas(cabezaTienda);
+
     // Liberar memoria del árbol
     eliminarArbolClientes(raiz);
     
@@ -169,16 +214,29 @@ INT_PTR CALLBACK fVentanaDashboard(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             SetMenu(hwnd, hMenu);
         }
         // Obtener el control ListBox desde la ventana
-        HWND hwndListBox = GetDlgItem(hwnd, LIS_DASHBOARD_CLIENTES);  // Reemplaza IDC_LISTBOX con el ID de tu ListBox
-
-        // Llamar a la función para mostrar los clientes en el ListBox
+        HWND hwndListBox = GetDlgItem(hwnd, LIS_DASHBOARD_CLIENTES);  
         mostrarClientesEnOrden(raiz, hwndListBox);
+
+        HWND hwndListBoxTiendas = GetDlgItem(hwnd, LIST_DASHBOARD_TIENDAS);
+        mostrarTiendasEnListBox(cabezaTienda, hwndListBoxTiendas);
 
         return TRUE; // Devuelve TRUE para indicar que se ha inicializado correctamente
     }
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_EDITAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_TIENDA), hwnd, fVentanaETienda);
+        }break;
+        case BTNMENU_REGISTRAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_TIENDA), hwnd, fVentanaRTienda);
+        }break;
         case BTNMENU_SALIR: // Si tienes un botón de salir o algo similar
             EndDialog(hwnd, 0);  // Cierra la ventana de dashboard
             break;
@@ -196,6 +254,13 @@ INT_PTR CALLBACK fVentanaDashboard(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
             // Abrir la ventana de dashboard (suponiendo que es un diálogo)
             DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_RC), hwnd, fVentanaRClientes);
+            break;
+        }
+        case BTNMENU_DASHBOARD: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
             break;
         }
         case BTNMENU_EDITAR_CLIENTES: {
@@ -233,6 +298,25 @@ INT_PTR CALLBACK fVentanaRClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_EDITAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_TIENDA), hwnd, fVentanaETienda);
+        }break;
+        case BTNMENU_REGISTRAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_TIENDA), hwnd, fVentanaRTienda);
+        }break;
+        case BTNMENU_DASHBOARD: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
+            break;
+        }
         case BTNMENU_SALIR: // Si tienes un botón de salir o algo similar
             EndDialog(hwnd, 0);  // Cierra la ventana de dashboard
             break;
@@ -314,6 +398,25 @@ INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_EDITAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_TIENDA), hwnd, fVentanaETienda);
+        }break;
+        case BTNMENU_REGISTRAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_TIENDA), hwnd, fVentanaRTienda);
+        }break;
+        case BTNMENU_DASHBOARD: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
+            break;
+        }
         case BTNMENU_SALIR: // Si tienes un botón de salir o algo similar
             EndDialog(hwnd, 0);  // Cierra la ventana de dashboard
             break;
@@ -416,6 +519,198 @@ INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
     return FALSE;
 }
 
+INT_PTR CALLBACK fVentanaRTienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    switch (msg) {
+    case WM_CLOSE:
+        DestroyWindow(hwnd);
+        break;
+
+    case WM_INITDIALOG: {
+        // Cargar y asignar el menú (si es necesario y aplicable para un diálogo)
+        HMENU hMenu = LoadMenu((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(IDR_MENU3));
+        if (hMenu) {
+            SetMenu(hwnd, hMenu);
+        }
+        return TRUE; // Devuelve TRUE para indicar que se ha inicializado correctamente
+    }
+
+    case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+        case BTNMENU_EDITAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_TIENDA), hwnd, fVentanaETienda);
+        }break;
+        case BTNMENU_DASHBOARD: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
+            break;
+        }
+        case BTNMENU_SALIR: // Si tienes un botón de salir o algo similar
+            EndDialog(hwnd, 0);  // Cierra la ventana de dashboard
+            break;
+
+        case BTNMENU_SALIR_CERRARSESI: {
+            usuarioLogueado = 0;
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_LOGIN), hwnd, fVentanaLogin);
+        }break;
+
+        case BTNMENU_EDITAR_CLIENTES: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_CLIENTE), hwnd, fVentanaEClientes);
+        }break;
+
+        case BTNMENU_REGISTRAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_TIENDA), hwnd, fVentanaRTienda);
+        }break;
+
+        case BTN_RT_REGISTRAR: {
+            
+            char nombre[30];
+            char direccion[30];
+
+            GetDlgItemText(hwnd, TXT_RT_NOMBRE, nombre, sizeof(nombre));
+            GetDlgItemText(hwnd, TXT_RT_DIREC, direccion, sizeof(direccion));
+
+            if (strlen(nombre) == 0 || strlen(direccion) == 0) {
+                MessageBox(hwnd, "Todos los campos son obligatorios", "Error", MB_OK);
+                break;
+            }
+            ultimoIDTienda++;
+
+            agregarTienda(cabezaTienda, ultimoIDTienda, nombre, direccion);
+
+        }break;
+
+        }
+
+        break;
+
+    case WM_DESTROY:
+        PostQuitMessage(9);
+        break;
+    }
+    return FALSE;
+}
+
+INT_PTR CALLBACK fVentanaETienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    switch (msg) {
+    case WM_CLOSE:
+        DestroyWindow(hwnd);
+        break;
+
+    case WM_INITDIALOG: {
+        // Cargar y asignar el menú (si es necesario y aplicable para un diálogo)
+        HMENU hMenu = LoadMenu((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(IDR_MENU3));
+        if (hMenu) {
+            SetMenu(hwnd, hMenu);
+        }
+
+        HWND hwndListBoxTiendas = GetDlgItem(hwnd, LIST_EDITART_TIENDA);
+        mostrarTiendasEnListBox(cabezaTienda, hwndListBoxTiendas);
+        return TRUE; // Devuelve TRUE para indicar que se ha inicializado correctamente
+    }
+
+    case WM_COMMAND:
+        if (HIWORD(wParam) == LBN_SELCHANGE) { // Detectar cambio de selección en el ListBox
+            HWND hwndListBox = GetDlgItem(hwnd, LIST_EDITART_TIENDA);
+            int index = (int)SendMessage(hwndListBox, LB_GETCURSEL, 0, 0); // Obtener el índice seleccionado
+
+            if (index != LB_ERR) {
+                // Recorre la lista de tiendas para encontrar la tienda correspondiente
+                Tienda* actual = cabezaTienda;
+                int contador = 0;
+                while (actual != nullptr && contador < index) {
+                    actual = actual->siguiente;
+                    contador++;
+                }
+
+                if (actual != nullptr) {
+                    idTiendaEditar = actual->id;
+                    // Rellenar los cuadros de texto con la información de la tienda
+                    SetDlgItemText(hwnd, TXT_EDITART_NOMBRE, actual->nombre.c_str());
+                    SetDlgItemText(hwnd, TXT_EDITART_DIRECCION, actual->direccion.c_str());
+                    SetDlgItemText(hwnd, TXT_EDITART_FECHACT, actual->fechaCambioEstatus.c_str());
+                    // Configurar el estado del radio button basado en el estatus
+                    if (actual->estatus == "Activa") {
+                        CheckRadioButton(hwnd, RB_EDITART_ACTIVO, RB_EDITART_SUSP, RB_EDITART_ACTIVO); // Activa el botón "Activo"
+                    }
+                    else if (actual->estatus == "Suspendido") {
+                        CheckRadioButton(hwnd, RB_EDITART_ACTIVO, RB_EDITART_SUSP, RB_EDITART_SUSP); // Activa el botón "Suspendido"
+                    }
+                    else {
+                        // Opcional: Manejar otros estados si es necesario
+                        CheckRadioButton(hwnd, RB_EDITART_ACTIVO, RB_EDITART_SUSP, 0); // Desactiva todos los radio buttons
+                    }
+                }
+            }
+        }
+        switch (LOWORD(wParam)) {
+        case BTNMENU_DASHBOARD: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
+            break;
+        }
+        case BTNMENU_SALIR: // Si tienes un botón de salir o algo similar
+            EndDialog(hwnd, 0);  // Cierra la ventana de dashboard
+            break;
+
+        case BTNMENU_SALIR_CERRARSESI: {
+            usuarioLogueado = 0;
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_LOGIN), hwnd, fVentanaLogin);
+        }break;
+
+        case BTNMENU_EDITAR_CLIENTES: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_CLIENTE), hwnd, fVentanaEClientes);
+        }break;
+
+        case BTNMENU_REGISTRAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_TIENDA), hwnd, fVentanaRTienda);
+        }break;
+
+        case BTNMENU_EDITAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_TIENDA), hwnd, fVentanaETienda);
+        }break;
+        case BTN_EDITART_MODIFICAR: {
+            actualizarTienda(cabezaTienda, idTiendaEditar, hwnd);
+        }break;
+
+        }
+
+        break;
+
+    case WM_DESTROY:
+        PostQuitMessage(9);
+        break;
+    }
+    return FALSE;
+}
+
 //================================================================== FUNCIONES =====================================================================
 
 
@@ -467,7 +762,6 @@ Cliente* buscarCliente(Cliente* raiz, int id) {
     return buscarCliente(raiz->derecha, id);
 }
 
-
 // Función para mostrar los clientes en orden en un ListBox (solo nombre, apellido paterno y apellido materno)
 void mostrarClientesEnOrden(Cliente* raiz, HWND hwndListBox) {
     if (raiz == nullptr) return;  // Si el árbol está vacío, no hace nada
@@ -484,7 +778,6 @@ void mostrarClientesEnOrden(Cliente* raiz, HWND hwndListBox) {
     // Llamada recursiva para recorrer el subárbol derecho
     mostrarClientesEnOrden(raiz->derecha, hwndListBox);
 }
-
 
 // Función para cambiar el estatus de un // Función para editar los detalles de un cliente
 void editarCliente(Cliente* raiz, int id, const string& nuevoNombre, const string& nuevoApellidoPaterno, const string& nuevoApellidoMaterno, const string& nuevoUsuario, const string& nuevaContrasenia, const string& nuevoEstatus) {
@@ -506,7 +799,6 @@ void editarCliente(Cliente* raiz, int id, const string& nuevoNombre, const strin
 
     MessageBox(nullptr, "Cliente editado exitosamente", "Info", MB_ICONINFORMATION);
 }
-
 
 // Función para liberar la memoria del árbol
 void eliminarArbolClientes(Cliente* raiz) {
@@ -712,3 +1004,212 @@ Cliente* buscarClientePorUsuario(Cliente* raiz, const string& usuario) {
     return resultado;
 }
 
+
+//------------------------------------Gestion de TIENDA------------------------------------------------------------------
+
+// 1. Función para agregar una nueva tienda a la lista doblemente ligada
+void agregarTienda(Tienda*& cabeza, int id, const string& nombre, const string& direccion) {
+    // Validar que no exista un ID duplicado
+    Tienda* actual = cabeza;
+    while (actual != nullptr) {
+        if (actual->id == id) {
+            MessageBox(nullptr, "El ID esta repetido", "Error", MB_ICONERROR);
+            return; // Salir si se encuentra un ID duplicado
+        }
+        actual = actual->siguiente;
+    }
+
+    // Crear una nueva tienda
+    Tienda* nuevaTienda = new Tienda(id, nombre, direccion);
+
+    if (cabeza == nullptr) {
+        // Si la lista está vacía, la nueva tienda será la cabeza
+        cabeza = nuevaTienda;
+    }
+    else {
+        // Insertar al final de la lista
+        actual = cabeza;
+        while (actual->siguiente != nullptr) {
+            actual = actual->siguiente;
+        }
+        actual->siguiente = nuevaTienda;
+        nuevaTienda->anterior = actual;
+    }
+    MessageBox(nullptr, "Se ha agregado la tienda correctamente", "Info", MB_ICONINFORMATION);
+}
+
+void guardarTiendas(Tienda* cabeza, const string& nombreArchivo) {
+    ofstream archivo(nombreArchivo, ios::binary);
+    if (!archivo) {
+        MessageBox(nullptr, "No se pudo abrir el archivo de TIENDA", "Error", MB_ICONERROR);
+        return;
+    }
+
+    Tienda* actual = cabeza;
+    while (actual != nullptr) {
+        archivo.write(reinterpret_cast<char*>(&actual->id), sizeof(actual->id));
+        size_t nombreSize = actual->nombre.size();
+        archivo.write(reinterpret_cast<char*>(&nombreSize), sizeof(nombreSize));
+        archivo.write(actual->nombre.c_str(), nombreSize);
+
+        size_t direccionSize = actual->direccion.size();
+        archivo.write(reinterpret_cast<char*>(&direccionSize), sizeof(direccionSize));
+        archivo.write(actual->direccion.c_str(), direccionSize);
+
+        size_t estatusSize = actual->estatus.size();
+        archivo.write(reinterpret_cast<char*>(&estatusSize), sizeof(estatusSize));
+        archivo.write(actual->estatus.c_str(), estatusSize);
+
+        // Aquí puedes guardar la fecha de cambio de estatus
+        size_t fechaCambioSize = actual->fechaCambioEstatus.size();
+        archivo.write(reinterpret_cast<char*>(&fechaCambioSize), sizeof(fechaCambioSize));
+        archivo.write(actual->fechaCambioEstatus.c_str(), fechaCambioSize);
+
+        actual = actual->siguiente; // Mover al siguiente nodo
+    }
+
+    archivo.close();
+}
+
+// Función para cargar tiendas desde un archivo binario
+Tienda* cargarTiendas(const string& nombreArchivo) {
+    ifstream archivo(nombreArchivo, ios::binary);
+    if (!archivo) {
+        MessageBox(nullptr, "No se pudo abrir el archivo TIENDAS", "Error", MB_ICONERROR);
+        return nullptr;
+    }
+
+    Tienda* cabeza = nullptr;
+    Tienda* cola = nullptr; // Para mantener el último nodo
+    while (true) {
+        Tienda* nuevaTienda = new Tienda(0, "", ""); // Crear un nuevo nodo temporal
+
+        archivo.read(reinterpret_cast<char*>(&nuevaTienda->id), sizeof(nuevaTienda->id));
+        if (archivo.eof()) {
+            delete nuevaTienda; // Eliminar nodo temporal si se llegó al final
+            break;
+        }
+
+        // Actualizar el último ID si el actual es mayor
+        if (nuevaTienda->id > ultimoIDTienda) {
+            ultimoIDTienda = nuevaTienda->id;
+        }
+
+        // Cargar nombre
+        size_t nombreSize;
+        archivo.read(reinterpret_cast<char*>(&nombreSize), sizeof(nombreSize));
+        nuevaTienda->nombre.resize(nombreSize);
+        archivo.read(&nuevaTienda->nombre[0], nombreSize);
+
+        // Cargar direccion
+        size_t direccionSize;
+        archivo.read(reinterpret_cast<char*>(&direccionSize), sizeof(direccionSize));
+        nuevaTienda->direccion.resize(direccionSize);
+        archivo.read(&nuevaTienda->direccion[0], direccionSize);
+
+        // Cargar estatus
+        size_t estatusSize;
+        archivo.read(reinterpret_cast<char*>(&estatusSize), sizeof(estatusSize));
+        nuevaTienda->estatus.resize(estatusSize);
+        archivo.read(&nuevaTienda->estatus[0], estatusSize);
+
+        // Cargar fecha de cambio de estatus
+        size_t fechaCambioSize;
+        archivo.read(reinterpret_cast<char*>(&fechaCambioSize), sizeof(fechaCambioSize));
+        nuevaTienda->fechaCambioEstatus.resize(fechaCambioSize);
+        archivo.read(&nuevaTienda->fechaCambioEstatus[0], fechaCambioSize);
+
+        // Enlazar en la lista
+        nuevaTienda->siguiente = nullptr;
+        nuevaTienda->anterior = cola; // Establecer puntero anterior
+        if (cola != nullptr) {
+            cola->siguiente = nuevaTienda; // Conectar el nodo anterior
+        }
+        else {
+            cabeza = nuevaTienda; // Si es el primer nodo, establecer cabeza
+        }
+        cola = nuevaTienda; // Actualizar cola
+    }
+
+    archivo.close();
+    return cabeza; // Retornar la cabeza de la lista
+}
+
+void eliminarTiendas(Tienda*& cabeza) {
+    while (cabeza != nullptr) {
+        Tienda* temp = cabeza;
+        cabeza = cabeza->siguiente; // Mover la cabeza al siguiente nodo
+        delete temp; // Liberar el nodo
+    }
+}
+
+// Función para mostrar las tiendas en un ListBox (solo el nombre)
+void mostrarTiendasEnListBox(Tienda* cabeza, HWND hwndListBox) {
+    if (cabeza == nullptr) {
+        SendMessage(hwndListBox, LB_ADDSTRING, 0, (LPARAM)"no hay tiendas");
+        MessageBox(nullptr, "No hay tiendas para mostrar.", "Información", MB_ICONINFORMATION);
+        return;
+    }
+
+    // Limpiar el ListBox antes de agregar nuevos elementos
+    SendMessage(hwndListBox, LB_RESETCONTENT, 0, 0);
+
+    Tienda* actual = cabeza;
+    while (actual != nullptr) {
+        // Agregar el nombre de la tienda al ListBox
+        SendMessage(hwndListBox, LB_ADDSTRING, 0, (LPARAM)actual->nombre.c_str());
+        actual = actual->siguiente;
+    }
+}
+
+void actualizarTienda(Tienda*& cabeza, int idTiendaEditar, HWND hwnd) {
+    Tienda* tienda = cabeza;
+
+    // Buscar la tienda con el ID proporcionado
+    while (tienda != nullptr) {
+        if (tienda->id == idTiendaEditar) {
+            // Obtener los valores de los cuadros de texto
+            char nombre[30], direccion[30];
+            GetDlgItemText(hwnd, TXT_EDITART_NOMBRE, nombre, sizeof(nombre));
+            GetDlgItemText(hwnd, TXT_EDITART_DIRECCION, direccion, sizeof(direccion));
+
+            // Obtener el estatus del radio button
+            bool estatusActivo = IsDlgButtonChecked(hwnd, RB_EDITART_ACTIVO);
+            bool estatusSuspendido = IsDlgButtonChecked(hwnd, RB_EDITART_SUSP);
+
+            // Verificar que los campos obligatorios no estén vacíos
+            if (strlen(nombre) == 0 || strlen(direccion) == 0) {
+                MessageBox(hwnd, "El nombre y la dirección son obligatorios", "Error", MB_OK | MB_ICONERROR);
+                return;
+            }
+
+            // Actualizar los datos de la tienda
+            tienda->nombre = nombre;
+            tienda->direccion = direccion;
+
+            // Actualizar el estatus según el radio button seleccionado
+            if (estatusActivo) {
+                tienda->estatus = "Activa";
+            }
+            else if (estatusSuspendido) {
+                tienda->estatus = "Suspendido";
+            }
+            else {
+                MessageBox(hwnd, "Debe seleccionar un estatus", "Error", MB_OK | MB_ICONERROR);
+                return;
+            }
+
+            // Fecha de cambio de estatus (opcional, si quieres registrar cuándo se hizo la actualización)
+            tienda->fechaCambioEstatus = obtenerFechaActual(); // Asumiendo que tienes una función para obtener la fecha
+
+            // Mostrar mensaje de éxito
+            MessageBox(hwnd, "La tienda se ha actualizado correctamente", "Éxito", MB_OK | MB_ICONINFORMATION);
+            return;
+        }
+
+        tienda = tienda->siguiente; // Continuar con la siguiente tienda
+    }
+
+    // Si no se encuentra la tienda
+    MessageBox(hwnd, "Tienda no encontrada", "Error", MB_OK | MB_ICONERROR);
+}

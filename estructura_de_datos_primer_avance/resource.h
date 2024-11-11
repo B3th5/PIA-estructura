@@ -12,12 +12,11 @@
 #define IDD_perfil                      114
 #define IDD_perfil_cliente              114
 #define DLG_EDITAR_CLIENTE              114
-#define IDD_regsitro_tiendas            116
-#define IDD_registro_tiendas            116
+#define DLG_REGISTRAR_TIENDA            116
 #define IDD_registro_productos          118
 #define IDR_MENU2                       120
 #define IDD_compra_de_productos         121
-#define IDD_informacion_tienda          123
+#define DLG_EDITAR_TIENDA               123
 #define IDD_envios                      125
 #define IDD_perfil_vendedor             131
 #define DLG_DASHBOARD                   133
@@ -66,6 +65,25 @@
 #define TXT_EDITAR_DIRECCION            1054
 #define TXT_EDITAR_CONTRA               1055
 #define BTN_EDITAR_MODIFICAR            1056
+#define LBL_RT_DIREC                    1057
+#define LBL_RT_NOMBRE                   1058
+#define TXT_RT_NOMBRE                   1059
+#define TXT_RT_DIREC                    1060
+#define LBL_RT_ESTATUS                  1061
+#define RB_RT_ACTIVO                    1062
+#define RB_RT_SUSP                      1063
+#define BTN_RT_REGISTRAR                1064
+#define LIST_DASHBOARD_TIENDAS          1065
+#define LBL_DASHBOARD_TIENDAS           1066
+#define LIST_EDITART_TIENDA             1067
+#define RB_EDITAR_ACTIVO                1068
+#define RB_EDITAR_SUSP                  1069
+#define TXT_EDITART_NOMBRE              1070
+#define TXT_EDITART_DIRECCION           1071
+#define BTN_EDITART_MODIFICAR           1072
+#define TXT_EDITART_FECHACT             1073
+#define RB_EDITART_ACTIVO               1074
+#define RB_EDITART_SUSP                 1075
 #define ID_INICIODESESI40001            40001
 #define ID_PEDIDOS_PEDIDOSDELCLIENTE    40002
 #define ID_VENTAS_VENTASPORTIENDA       40003
@@ -112,14 +130,16 @@
 #define BTNMENU_SALIR                   40043
 #define BTNMENU_SALIR_CERRARSESI        40046
 #define BTNMENU_EDITAR_CLIENTES         40048
+#define BTNMENU_DASHBOARD               40050
+#define BTNMENU_EDITAR_TIENDAS          40052
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        136
-#define _APS_NEXT_COMMAND_VALUE         40049
-#define _APS_NEXT_CONTROL_VALUE         1057
+#define _APS_NEXT_COMMAND_VALUE         40053
+#define _APS_NEXT_CONTROL_VALUE         1073
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
