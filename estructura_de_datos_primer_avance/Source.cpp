@@ -13,6 +13,7 @@ using namespace std;
 
 int ultimoID = 0;
 int usuarioLogueado = 0;
+int idClienteEditar = 0;
 // Función para obtener la fecha actual
 string obtenerFechaActual();
 
@@ -53,7 +54,7 @@ Cliente* buscarCliente(Cliente* raiz, int id);
 void mostrarClientesEnOrden(Cliente* raiz, HWND hwndListBox);
 
 // Función para cambiar el estatus de un cliente
-void cambiarEstatus(Cliente* raiz, int id, const string& nuevoEstatus);
+void editarCliente(Cliente* raiz, int id, const string& nuevoNombre, const string& nuevoApellidoPaterno, const string& nuevoApellidoMaterno, const string& nuevoUsuario, const string& nuevaContrasenia, const string& nuevoEstatus);
 
 // Función para liberar la memoria del árbol
 void eliminarArbolClientes(Cliente* raiz);
@@ -201,7 +202,7 @@ INT_PTR CALLBACK fVentanaDashboard(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             EndDialog(hwnd, IDOK);
 
             // Abrir la ventana de dashboard (suponiendo que es un diálogo)
-            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_RC), hwnd, fVentanaEClientes);
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_CLIENTE), hwnd, fVentanaEClientes);
         }
 
         }
@@ -336,18 +337,20 @@ INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             char usuario[20];
             GetDlgItemText(hwnd, TXT_EDITAR_BUSCAR, usuario, sizeof(usuario));
 
-            Cliente* cliente = buscarClientePorUsuario(raiz, usuario);
+            idClienteEditar = 0;
+            Cliente* clienteEditar = buscarClientePorUsuario(raiz, usuario);
 
-            if (cliente != nullptr) {
+            if (clienteEditar != nullptr) {
+                idClienteEditar = clienteEditar->id;
                 // Colocar la información del cliente en los cuadros de texto
-                SetDlgItemText(hwnd, TXT_EDITAR_NOMBRE, cliente->nombre.c_str());
-                SetDlgItemText(hwnd, TXT_EDITAR_APELLIDOP, cliente->apellidoPaterno.c_str());
-                SetDlgItemText(hwnd, TXT_EDITAR_APELLIDOM, cliente->apellidoMaterno.c_str());
-                SetDlgItemText(hwnd, TXT_EDITAR_USUARIO, cliente->usuario.c_str());
-                SetDlgItemText(hwnd, TXT_EDITAR_CONTRA, cliente->contrasenia.c_str());
+                SetDlgItemText(hwnd, TXT_EDITAR_NOMBRE, clienteEditar->nombre.c_str());
+                SetDlgItemText(hwnd, TXT_EDITAR_APELLIDOP, clienteEditar->apellidoPaterno.c_str());
+                SetDlgItemText(hwnd, TXT_EDITAR_APELLIDOM, clienteEditar->apellidoMaterno.c_str());
+                SetDlgItemText(hwnd, TXT_EDITAR_USUARIO, clienteEditar->usuario.c_str());
+                SetDlgItemText(hwnd, TXT_EDITAR_CONTRA, clienteEditar->contrasenia.c_str());
 
                 // Comprobar el estatus y marcar el botón de radio si es "Activo"
-                if (cliente->estatus == "Activo") {
+                if (clienteEditar->estatus == "Activo") {
                     CheckRadioButton(hwnd, RD_EDITAR_ACTIVO, RD_EDITAR_SUSPENDIDO, RD_EDITAR_ACTIVO);
                 }
                 else {
@@ -358,6 +361,48 @@ INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
                 MessageBox(hwnd, "Cliente no encontrado", "Error", MB_OK | MB_ICONERROR);
             }
         } break;
+
+        case BTN_EDITAR_MODIFICAR: {
+            // Obtener el texto de los cuadros de texto
+            int idUsuarioActualizo = usuarioLogueado;  // ID del usuario que realiza la actualización
+            char nombre[30];
+            char apellidoPaterno[30];
+            char apellidoMaterno[30];
+            char usuario[30];
+            char contrasenia[30];
+
+            // Obteniendo los textos desde los cuadros de texto de la interfaz
+            GetDlgItemText(hwnd, TXT_EDITAR_NOMBRE, nombre, sizeof(nombre));
+            GetDlgItemText(hwnd, TXT_EDITAR_APELLIDOP, apellidoPaterno, sizeof(apellidoPaterno));
+            GetDlgItemText(hwnd, TXT_EDITAR_APELLIDOM, apellidoMaterno, sizeof(apellidoMaterno));
+            GetDlgItemText(hwnd, TXT_EDITAR_USUARIO, usuario, sizeof(usuario));
+            GetDlgItemText(hwnd, TXT_EDITAR_CONTRA, contrasenia, sizeof(contrasenia));
+
+            // Validar que los campos no estén vacíos
+            if (strlen(nombre) == 0 || strlen(apellidoPaterno) == 0 || strlen(usuario) == 0 || strlen(contrasenia) == 0) {
+                MessageBox(hwnd, "Todos los campos son obligatorios", "Error", MB_OK);
+                break;
+            }
+
+            // Obtener el estatus seleccionado de los Radio Buttons
+            string nuevoEstatus;
+            if (IsDlgButtonChecked(hwnd, RD_EDITAR_ACTIVO) == BST_CHECKED) {
+                nuevoEstatus = "Activo";
+            }
+            else if (IsDlgButtonChecked(hwnd, RD_EDITAR_SUSPENDIDO) == BST_CHECKED) {
+                nuevoEstatus = "Inactivo";
+            }
+            else {
+                MessageBox(hwnd, "Seleccione un estatus.", "Error", MB_OK);
+                break;
+            }
+
+            // Convertir los char* a string para llamar a la función editarCliente
+            editarCliente(raiz, idClienteEditar, string(nombre), string(apellidoPaterno), string(apellidoMaterno), string(usuario), string(contrasenia), nuevoEstatus);
+
+            MessageBox(hwnd, "Cliente editado exitosamente.", "Éxito", MB_OK | MB_ICONINFORMATION);
+        } break;
+
 
 
         }
@@ -406,17 +451,22 @@ Cliente* agregarCliente(Cliente* raiz, int id, const string& nombre, const strin
 }
 
 // Función para buscar un cliente en el árbol
+// Función para buscar un cliente en el árbol por ID
 Cliente* buscarCliente(Cliente* raiz, int id) {
+    // Si el árbol está vacío o hemos encontrado el cliente
     if (raiz == nullptr || raiz->id == id) {
-        return raiz;
+        return raiz;  // Retorna el cliente encontrado o nullptr si no se encontró
     }
+
+    // Si el ID a buscar es menor que el ID del nodo actual, busca en el subárbol izquierdo
     if (id < raiz->id) {
         return buscarCliente(raiz->izquierda, id);
     }
-    else {
-        return buscarCliente(raiz->derecha, id);
-    }
+
+    // Si el ID a buscar es mayor que el ID del nodo actual, busca en el subárbol derecho
+    return buscarCliente(raiz->derecha, id);
 }
+
 
 // Función para mostrar los clientes en orden en un ListBox (solo nombre, apellido paterno y apellido materno)
 void mostrarClientesEnOrden(Cliente* raiz, HWND hwndListBox) {
@@ -436,18 +486,27 @@ void mostrarClientesEnOrden(Cliente* raiz, HWND hwndListBox) {
 }
 
 
-// Función para cambiar el estatus de un cliente
-void cambiarEstatus(Cliente* raiz, int id, const string& nuevoEstatus) {
+// Función para cambiar el estatus de un // Función para editar los detalles de un cliente
+void editarCliente(Cliente* raiz, int id, const string& nuevoNombre, const string& nuevoApellidoPaterno, const string& nuevoApellidoMaterno, const string& nuevoUsuario, const string& nuevaContrasenia, const string& nuevoEstatus) {
     Cliente* cliente = buscarCliente(raiz, id);
     if (cliente == nullptr) {
-        cout << "Cliente no encontrado.\n";
+        MessageBox(nullptr, "No se encontro el cliente", "Error", MB_ICONERROR);
         return;
     }
+
+    // Actualizar los detalles del cliente
+    cliente->nombre = nuevoNombre;
+    cliente->apellidoPaterno = nuevoApellidoPaterno;
+    cliente->apellidoMaterno = nuevoApellidoMaterno;
+    cliente->usuario = nuevoUsuario;
+    cliente->contrasenia = nuevaContrasenia;
     cliente->estatus = nuevoEstatus;
     cliente->fechaCambioEstatus = obtenerFechaActual();
     cliente->idUsuarioActualizo = usuarioLogueado;
-    cout << "Estatus cambiado exitosamente.\n";
+
+    MessageBox(nullptr, "Cliente editado exitosamente", "Info", MB_ICONINFORMATION);
 }
+
 
 // Función para liberar la memoria del árbol
 void eliminarArbolClientes(Cliente* raiz) {
