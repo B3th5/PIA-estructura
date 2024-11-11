@@ -13,15 +13,57 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Archivos de encabezado\Bibliotecas">
+      <UniqueIdentifier>{85d70e48-ca58-4b05-a79c-e6b85d24ba0b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Archivos de encabezado\FuncionesEspecificas">
+      <UniqueIdentifier>{f8660be7-d4ea-40f4-a9fa-acf571d7c70b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Archivos de encabezado\DeclaracionesAdelantadas">
+      <UniqueIdentifier>{d8a6be79-686b-477a-8e25-85aa7476dad7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Archivos de encabezado\DeclaracionesAdelantadas\FuncionesEspecificas">
+      <UniqueIdentifier>{073e5bd6-b7c7-476a-a5ae-747643072144}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Archivos de origen\FuncionesEspecificas">
+      <UniqueIdentifier>{e229328b-fce4-42d1-9bfc-e06cdaa5b5bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Archivos de origen\CALLBACKS">
+      <UniqueIdentifier>{d45eaa92-0211-4273-96ae-8c050e340bce}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source.cpp">
       <Filter>Archivos de origen</Filter>
     </ClCompile>
+    <ClCompile Include="usuarios.cpp">
+      <Filter>Archivos de origen\FuncionesEspecificas</Filter>
+    </ClCompile>
+    <ClCompile Include="cUSUARIOS.cpp">
+      <Filter>Archivos de origen\CALLBACKS</Filter>
+    </ClCompile>
+    <ClCompile Include="cMODIFICACION_USUARIOS.cpp">
+      <Filter>Archivos de origen\CALLBACKS</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
       <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+    <ClInclude Include="usuarios.h">
+      <Filter>Archivos de encabezado\FuncionesEspecificas</Filter>
+    </ClInclude>
+    <ClInclude Include="bibliotecasC++.h">
+      <Filter>Archivos de encabezado\Bibliotecas</Filter>
+    </ClInclude>
+    <ClInclude Include="declaracioneEstructura.h">
+      <Filter>Archivos de encabezado\Bibliotecas</Filter>
+    </ClInclude>
+    <ClInclude Include="declaracionEstructuras.h">
+      <Filter>Archivos de encabezado\DeclaracionesAdelantadas\FuncionesEspecificas</Filter>
+    </ClInclude>
+    <ClInclude Include="CALLBACKS.h">
+      <Filter>Archivos de encabezado\DeclaracionesAdelantadas\FuncionesEspecificas</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

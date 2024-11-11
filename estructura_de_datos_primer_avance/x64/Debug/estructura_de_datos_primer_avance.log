@@ -1,4 +1,6 @@
 ﻿  Source.cpp
-D:\Practicas\c++\PIA ESTRUCTURA\PIA-estructura\estructura_de_datos_primer_avance\resource.h(62,1): warning C4005: 'DLG_LOGIN': macro redefinition
-D:\Practicas\c++\PIA ESTRUCTURA\PIA-estructura\estructura_de_datos_primer_avance\resource.h(5): message : see previous definition of 'DLG_LOGIN'
-  estructura_de_datos_primer_avance.vcxproj -> D:\Practicas\c++\PIA ESTRUCTURA\PIA-estructura\x64\Debug\estructura_de_datos_primer_avance.exe
+C:\Users\Dell\Desktop\estructura_de_datos_primer_avance\estructura_de_datos_primer_avance\resource.h(62,1): warning C4005: 'DLG_LOGIN': redefinición de macro
+C:\Users\Dell\Desktop\estructura_de_datos_primer_avance\estructura_de_datos_primer_avance\resource.h(5): message : vea la definición anterior de 'DLG_LOGIN'
+resource.h(62): warning RC4005: 'DLG_LOGIN' : redefinition
+  
+  estructura_de_datos_primer_avance.vcxproj -> C:\Users\Dell\Desktop\estructura_de_datos_primer_avance\x64\Debug\estructura_de_datos_primer_avance.exe

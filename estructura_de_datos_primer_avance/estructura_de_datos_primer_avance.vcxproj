@@ -127,10 +127,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cMODIFICACION_USUARIOS.cpp" />
+    <ClCompile Include="cUSUARIOS.cpp" />
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="usuarios.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="bibliotecasC++.h" />
+    <ClInclude Include="CALLBACKS.h" />
+    <ClInclude Include="declaracioneEstructura.h" />
+    <ClInclude Include="declaracionEstructuras.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="usuarios.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="estructura_de_datos_primer_avance.rc" />
