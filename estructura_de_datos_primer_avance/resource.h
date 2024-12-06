@@ -21,12 +21,12 @@
 #define IDD_perfil_vendedor             131
 #define DLG_DASHBOARD                   133
 #define IDR_MENU3                       135
+#define DLG_DASHB_USER                  136
+#define IDR_MENU4                       138
 #define IDC_btn_iniciarsesion           1001
 #define BTN_LOGIN_LOGIN                 1001
 #define IDC_btn_registrarse             1002
-#define IDC_usuario                     1003
 #define TXT_LOGIN_USER                  1003
-#define IDC_contrasena                  1004
 #define TXT_LOGIN_PASS                  1004
 #define IDC_EDIT1                       1005
 #define IDC_EDIT2                       1006
@@ -98,7 +98,20 @@
 #define TXT_RP_NOMBRE                   1087
 #define TXT_RP_CODIGO                   1088
 #define LIST_DASHBOARD_PROD             1089
-#define LBL_DASHBOARD_PROD              1090
+#define LBL_DASHUSER_EXISTENCIA2        1090
+#define LBL_DASHUSER_TIENDA2            1091
+#define BTN_DASHUSER_COMPRAR            1092
+#define LBL_DASHUSER_PRODUCTOS          1093
+#define LIST_DASHUSER_PRODUCTOS         1094
+#define LBL_DASHUSER_NOMBRE             1095
+#define LBL_DASHUSER_PRECIO             1096
+#define LBL_DASHUSER_EXISTENCIA         1097
+#define LBL_DASHUSER_TIENDA             1098
+#define LBL_DASHUSER_NOMBRE2            1099
+#define LBL_DASHUSER_PRECIO2            1100
+#define LBL_DASHBOARD_PROD              1101
+#define RD_RC_ADMIN                     1102
+#define RD_RC_CLIENTE                   1103
 #define ID_INICIODESESI40001            40001
 #define ID_PEDIDOS_PEDIDOSDELCLIENTE    40002
 #define ID_VENTAS_VENTASPORTIENDA       40003
@@ -147,14 +160,20 @@
 #define BTNMENU_EDITAR_CLIENTES         40048
 #define BTNMENU_DASHBOARD               40050
 #define BTNMENU_EDITAR_TIENDAS          40052
+#define ID_SALIR_CERRARSESION           40053
+#define ID_SALIR_SALIR40054             40054
+#define BTNMENU2_CERRARSESION           40055
+#define BTNMENU2_SALIR                  40056
+#define ID_INICIO_INICIO                40057
+#define BTNMENU2_INICIO                 40058
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        136
-#define _APS_NEXT_COMMAND_VALUE         40053
-#define _APS_NEXT_CONTROL_VALUE         1082
+#define _APS_NEXT_RESOURCE_VALUE        139
+#define _APS_NEXT_COMMAND_VALUE         40059
+#define _APS_NEXT_CONTROL_VALUE         1095
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

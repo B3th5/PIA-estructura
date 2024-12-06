@@ -12,6 +12,7 @@
 
 using namespace std;
 
+int TipoUsuario = -1;
 int ultimoID = 0;
 int ultimoIDTienda = 0;
 
@@ -37,12 +38,13 @@ struct Cliente {
     string estatus;
     string fechaCambioEstatus;
     int idUsuarioActualizo; // Nuevo campo para el ID del usuario que actualizó
+    int tipoUsuario;
     Cliente* izquierda;
     Cliente* derecha;
 
-    Cliente(int id, const string& nombre, const string& apellidoPaterno, const string& apellidoMaterno, const string& usuario, const string& contrasenia, const string& estatus, const string& fechaActualizo, int idUsuarioActualizo)
+    Cliente(int id, const string& nombre, const string& apellidoPaterno, const string& apellidoMaterno, const string& usuario, const string& contrasenia, const string& estatus, const string& fechaActualizo, int idUsuarioActualizo, int tipoUsuario)
         : id(id), nombre(nombre), apellidoPaterno(apellidoPaterno), apellidoMaterno(apellidoMaterno), usuario(usuario), contrasenia(contrasenia), fechaRegistro(obtenerFechaActual()), estatus(estatus),
-        fechaCambioEstatus(fechaActualizo), idUsuarioActualizo(idUsuarioActualizo), // Inicializado a 0
+        fechaCambioEstatus(fechaActualizo), idUsuarioActualizo(idUsuarioActualizo), tipoUsuario(tipoUsuario),
         izquierda(nullptr), derecha(nullptr) {}
 
     Cliente() : id(0), // Inicializado a 0
@@ -157,6 +159,8 @@ INT_PTR CALLBACK fVentanaRTienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 INT_PTR CALLBACK fVentanaETienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaRProductos(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+INT_PTR CALLBACK fVentanaDashboardUser(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrev, PSTR cmdline, int nCmdShow) {
 
     
@@ -167,7 +171,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrev, PSTR cmdline, int nCmdS
         archivoEntrada.close();
     }
     else {
-        raiz = agregarCliente(raiz, 1, "ADMIN", "admin", "null", "admin", "Adminpass", "Activo", obtenerFechaActual(), 1);
+        raiz = agregarCliente(raiz, 1, "ADMIN", "admin", "null", "admin", "Adminpass", "Activo", obtenerFechaActual(), 1, 1);
     }
 
     // Crear la ventana de login
@@ -218,6 +222,7 @@ INT_PTR CALLBACK fVentanaLogin(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
             // Obtener el texto de los cuadros de texto
             char usuario[20];
             char contrasenia[20];
+            bool usuarioAdmin = false;
             GetDlgItemText(hwnd, TXT_LOGIN_USER, usuario, 256);
             GetDlgItemText(hwnd, TXT_LOGIN_PASS, contrasenia, 256);
 
@@ -226,6 +231,7 @@ INT_PTR CALLBACK fVentanaLogin(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
             // Verificar si el cliente existe y las credenciales son correctas
             if (cliente != nullptr && strcmp(cliente->usuario.c_str(), usuario) == 0 && strcmp(cliente->contrasenia.c_str(), contrasenia) == 0) {
                 usuarioLogueado = cliente->id;
+                TipoUsuario = cliente->tipoUsuario;
                 MessageBox(hwnd, "Inicio de sesión exitoso", "Éxito", MB_OK);
                 // Proceder con el flujo de la aplicación o cerrar la ventana de login
                 // Cerrar la ventana de login
@@ -300,6 +306,7 @@ INT_PTR CALLBACK fVentanaDashboard(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
         case BTNMENU_SALIR_CERRARSESI: {
             usuarioLogueado = 0;
+            TipoUsuario = -1;
             EndDialog(hwnd, IDOK);
 
             // Abrir la ventana de dashboard (suponiendo que es un diálogo)
@@ -386,6 +393,7 @@ INT_PTR CALLBACK fVentanaRClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
         case BTNMENU_SALIR_CERRARSESI: {
             usuarioLogueado = 0;
+            TipoUsuario = -1;
             EndDialog(hwnd, IDOK);
 
             // Abrir la ventana de dashboard (suponiendo que es un diálogo)
@@ -410,6 +418,7 @@ INT_PTR CALLBACK fVentanaRClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             char direccion[30];
             char usuario[30];
             char contrasenia[30];
+            int tipoUsuario = -1;
 
             GetDlgItemText(hwnd, TXT_RC_NOMBRE, nombre, sizeof(nombre));
             GetDlgItemText(hwnd, TXT_RC_APELLIDOP, apellidoPaterno, sizeof(apellidoPaterno));
@@ -418,12 +427,24 @@ INT_PTR CALLBACK fVentanaRClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             GetDlgItemText(hwnd, TXT_RC_USUARIO, usuario, sizeof(usuario));
             GetDlgItemText(hwnd, TXT_RC_CONTRA, contrasenia, sizeof(contrasenia));
 
+            // Verificar cuál RadioButton está seleccionado
+            if (IsDlgButtonChecked(hwnd, RD_RC_ADMIN) == BST_CHECKED) {
+                tipoUsuario = 1; // Administrador
+            }
+            else if (IsDlgButtonChecked(hwnd, RD_RC_CLIENTE) == BST_CHECKED) {
+                tipoUsuario = 0; // Cliente
+            }
+            else {
+                MessageBox(hwnd, "Debe seleccionar un tipo de usuario.", "Error", MB_OK | MB_ICONERROR);
+                break;
+            }
+
             if (strlen(nombre) == 0 || strlen(apellidoPaterno) == 0 || strlen(usuario) == 0 || strlen(contrasenia) == 0) {
                 MessageBox(hwnd, "Todos los campos son obligatorios", "Error", MB_OK);
                 break;
             }
             ultimoID++;
-            raiz = agregarCliente(raiz, ultimoID, nombre, apellidoPaterno, apellidoMaterno, usuario, contrasenia, "Activo", obtenerFechaActual(), idUsuarioActualizo);
+            raiz = agregarCliente(raiz, ultimoID, nombre, apellidoPaterno, apellidoMaterno, usuario, contrasenia, "Activo", obtenerFechaActual(), idUsuarioActualizo, tipoUsuario);
 
             // Verificar si el cliente fue agregado correctamente
             if (raiz != nullptr) 
@@ -492,6 +513,7 @@ INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
         case BTNMENU_SALIR_CERRARSESI: {
             usuarioLogueado = 0;
+            TipoUsuario = -1;
             EndDialog(hwnd, IDOK);
 
             // Abrir la ventana de dashboard (suponiendo que es un diálogo)
@@ -630,6 +652,7 @@ INT_PTR CALLBACK fVentanaRTienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
         case BTNMENU_SALIR_CERRARSESI: {
             usuarioLogueado = 0;
+            TipoUsuario = -1;
             EndDialog(hwnd, IDOK);
 
             // Abrir la ventana de dashboard (suponiendo que es un diálogo)
@@ -751,6 +774,7 @@ INT_PTR CALLBACK fVentanaETienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
         case BTNMENU_SALIR_CERRARSESI: {
             usuarioLogueado = 0;
+            TipoUsuario = -1;
             EndDialog(hwnd, IDOK);
 
             // Abrir la ventana de dashboard (suponiendo que es un diálogo)
@@ -826,6 +850,7 @@ INT_PTR CALLBACK fVentanaRProductos(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 
         case BTNMENU_SALIR_CERRARSESI: {
             usuarioLogueado = 0;
+            TipoUsuario = -1;
             EndDialog(hwnd, IDOK);
 
             // Abrir la ventana de dashboard (suponiendo que es un diálogo)
@@ -918,6 +943,57 @@ INT_PTR CALLBACK fVentanaRProductos(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
     return FALSE;
 }
 
+INT_PTR CALLBACK fVentanaDashboardUser(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    switch (msg) {
+    case WM_CLOSE:
+        DestroyWindow(hwnd);
+        break;
+
+    case WM_INITDIALOG: {
+        // Cargar y asignar el menú (si es necesario y aplicable para un diálogo)
+        HMENU hMenu = LoadMenu((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(IDR_MENU4));
+        if (hMenu) {
+            SetMenu(hwnd, hMenu);
+        }
+
+        return TRUE; // Devuelve TRUE para indicar que se ha inicializado correctamente
+    }
+
+    case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+        case BTNMENU2_INICIO: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHB_USER), hwnd, fVentanaDashboardUser);
+            break;
+        }
+        case BTNMENU2_SALIR: // Si tienes un botón de salir o algo similar
+            EndDialog(hwnd, 0);  // Cierra la ventana de dashboard
+            break;
+
+        case BTNMENU2_CERRARSESION: {
+            usuarioLogueado = 0;
+            TipoUsuario = -1;
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_LOGIN), hwnd, fVentanaLogin);
+        }break;
+
+
+        
+        }
+
+        break;
+
+    case WM_DESTROY:
+        PostQuitMessage(9);
+        break;
+    }
+    return FALSE;
+}
+
 //================================================================== FUNCIONES =====================================================================
 
 
@@ -932,17 +1008,17 @@ string obtenerFechaActual() {
 }
 
 // Función para agregar un cliente al árbol
-Cliente* agregarCliente(Cliente* raiz, int id, const string& nombre, const string& apellidoPaterno, const string& apellidoMaterno, const string& usuario, const string& contrasenia, const string& estatus, const string& fechaActualizo, int idUsuarioActualizo) {
+Cliente* agregarCliente(Cliente* raiz, int id, const string& nombre, const string& apellidoPaterno, const string& apellidoMaterno, const string& usuario, const string& contrasenia, const string& estatus, const string& fechaActualizo, int idUsuarioActualizo, int tipoUsuario) {
     if (raiz == nullptr) {
-        return new Cliente(id, nombre, apellidoPaterno, apellidoMaterno, usuario, contrasenia, estatus, fechaActualizo, idUsuarioActualizo);
+        return new Cliente(id, nombre, apellidoPaterno, apellidoMaterno, usuario, contrasenia, estatus, fechaActualizo, idUsuarioActualizo, tipoUsuario);
     }
 
     if (id < raiz->id) {
-        raiz->izquierda = agregarCliente(raiz->izquierda, id, nombre, apellidoPaterno, apellidoMaterno, usuario, contrasenia, estatus, fechaActualizo, idUsuarioActualizo);
+        raiz->izquierda = agregarCliente(raiz->izquierda, id, nombre, apellidoPaterno, apellidoMaterno, usuario, contrasenia, estatus, fechaActualizo, idUsuarioActualizo, tipoUsuario);
     }
 
     else if (id > raiz->id) {
-        raiz->derecha = agregarCliente(raiz->derecha, id, nombre, apellidoPaterno, apellidoMaterno, usuario, contrasenia, estatus, fechaActualizo, idUsuarioActualizo);
+        raiz->derecha = agregarCliente(raiz->derecha, id, nombre, apellidoPaterno, apellidoMaterno, usuario, contrasenia, estatus, fechaActualizo, idUsuarioActualizo, tipoUsuario);
     }
 
     else {
@@ -987,7 +1063,7 @@ void mostrarClientesEnOrden(Cliente* raiz, HWND hwndListBox) {
 }
 
 // Función para cambiar el estatus de un // Función para editar los detalles de un cliente
-void editarCliente(Cliente* raiz, int id, const string& nuevoNombre, const string& nuevoApellidoPaterno, const string& nuevoApellidoMaterno, const string& nuevoUsuario, const string& nuevaContrasenia, const string& nuevoEstatus) {
+void editarCliente(Cliente* raiz, int id, const string& nuevoNombre, const string& nuevoApellidoPaterno, const string& nuevoApellidoMaterno, const string& nuevoUsuario, const string& nuevaContrasenia, const string& nuevoEstatus, int tipoUsuario) {
     Cliente* cliente = buscarCliente(raiz, id);
     if (cliente == nullptr) {
         MessageBox(nullptr, "No se encontro el cliente", "Error", MB_ICONERROR);
@@ -1003,6 +1079,7 @@ void editarCliente(Cliente* raiz, int id, const string& nuevoNombre, const strin
     cliente->estatus = nuevoEstatus;
     cliente->fechaCambioEstatus = obtenerFechaActual();
     cliente->idUsuarioActualizo = usuarioLogueado;
+    cliente->tipoUsuario = tipoUsuario;
 
     MessageBox(nullptr, "Cliente editado exitosamente", "Info", MB_ICONINFORMATION);
 }
@@ -1061,6 +1138,9 @@ void guardarDatos(Cliente* raiz, ofstream& archivo) {
     archivo.put('\0');  // Añadir el terminador nulo
 
     archivo.write(reinterpret_cast<char*>(&raiz->idUsuarioActualizo), sizeof(raiz->idUsuarioActualizo));
+
+    // Guardar el tipo de usuario
+    archivo.write(reinterpret_cast<char*>(&raiz->tipoUsuario), sizeof(raiz->tipoUsuario));
 
     // Recursión para guardar los subárboles izquierdo y derecho
     guardarDatos(raiz->izquierda, archivo);
@@ -1163,8 +1243,14 @@ Cliente* cargarDatos(ifstream& archivo, Cliente* raiz) {
         return nullptr;
     }
 
+    // Leer el tipo de usuario
+    if (!archivo.read(reinterpret_cast<char*>(&nuevoCliente->tipoUsuario), sizeof(nuevoCliente->tipoUsuario))) {
+        delete nuevoCliente; // Limpia la memoria si hay error
+        return nullptr;
+    }
+
     // Agregar cliente al árbol
-    raiz = agregarCliente(raiz, nuevoCliente->id, nuevoCliente->nombre, nuevoCliente->apellidoPaterno, nuevoCliente->apellidoMaterno, nuevoCliente->usuario, nuevoCliente->contrasenia, nuevoCliente->estatus, nuevoCliente->fechaCambioEstatus, nuevoCliente->idUsuarioActualizo);
+    raiz = agregarCliente(raiz, nuevoCliente->id, nuevoCliente->nombre, nuevoCliente->apellidoPaterno, nuevoCliente->apellidoMaterno, nuevoCliente->usuario, nuevoCliente->contrasenia, nuevoCliente->estatus, nuevoCliente->fechaCambioEstatus, nuevoCliente->idUsuarioActualizo, nuevoCliente->tipoUsuario);
 
     // Leer los subárboles izquierdo y derecho
     raiz = cargarDatos(archivo, raiz); // Asegúrate de que esto mantenga la referencia correcta a la raíz
