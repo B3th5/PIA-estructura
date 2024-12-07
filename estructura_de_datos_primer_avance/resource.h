@@ -23,6 +23,7 @@
 #define IDR_MENU3                       135
 #define DLG_DASHB_USER                  136
 #define IDR_MENU4                       138
+#define DLG_COMPRARPRODUCTO             139
 #define IDC_btn_iniciarsesion           1001
 #define BTN_LOGIN_LOGIN                 1001
 #define IDC_btn_registrarse             1002
@@ -112,6 +113,22 @@
 #define LBL_DASHBOARD_PROD              1101
 #define RD_RC_ADMIN                     1102
 #define RD_RC_CLIENTE                   1103
+#define RD_EC_ADMIN                     1104
+#define RD_EC_CLIENTE                   1105
+#define LBL_COMPP_PU                    1106
+#define LBL_COMPP_PT                    1107
+#define LBL_COMPP_FECHA2                1108
+#define BTN_COMPP_COMPRAR               1109
+#define BTN_COMPP_CANCELAR              1110
+#define LBL_COMPP_TITULO                1111
+#define LBL_COMPP_PRODUCTO              1112
+#define LBL_COMPP_CANTIDAD              1113
+#define TXT_COMPP_CANTIDAD              1114
+#define LBL_COMPP_PRECIOUNI             1115
+#define LBL_COMPP_PRECIOTOTAL           1116
+#define LBL_COMPP_PRECIOUNI3            1117
+#define TXT_COMPP_DIRECCION             1118
+#define LBL_COMPP_FECHA                 1119
 #define ID_INICIODESESI40001            40001
 #define ID_PEDIDOS_PEDIDOSDELCLIENTE    40002
 #define ID_VENTAS_VENTASPORTIENDA       40003
@@ -171,9 +188,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        139
+#define _APS_NEXT_RESOURCE_VALUE        141
 #define _APS_NEXT_COMMAND_VALUE         40059
-#define _APS_NEXT_CONTROL_VALUE         1095
+#define _APS_NEXT_CONTROL_VALUE         1110
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

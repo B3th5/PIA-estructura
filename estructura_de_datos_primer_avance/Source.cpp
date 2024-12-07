@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <cctype>
+#include <sstream>
 
 using namespace std;
 
@@ -20,6 +21,8 @@ int usuarioLogueado = 0;
 
 int idClienteEditar = 0;
 int idTiendaEditar = 0;
+
+string idProductoComprar = "null";
 
 // Función para obtener la fecha actual
 string obtenerFechaActual();
@@ -98,7 +101,7 @@ struct Producto {
 };
 
 // Función para agregar un cliente al árbol
-Cliente* agregarCliente(Cliente* raiz, int id, const string& nombre, const string& apellidoPaterno, const string& apellidoMaterno, const string& usuario, const string& contrasenia, const string& estatus, const string& fechaActualizo, int idUsuarioActualizo);
+Cliente* agregarCliente(Cliente* raiz, int id, const string& nombre, const string& apellidoPaterno, const string& apellidoMaterno, const string& usuario, const string& contrasenia, const string& estatus, const string& fechaActualizo, int idUsuarioActualizo, int tipoUsuario);
 
 // Función para buscar un cliente en el árbol
 Cliente* buscarCliente(Cliente* raiz, int id);
@@ -107,7 +110,7 @@ Cliente* buscarCliente(Cliente* raiz, int id);
 void mostrarClientesEnOrden(Cliente* raiz, HWND hwndListBox);
 
 // Función para cambiar el estatus de un cliente
-void editarCliente(Cliente* raiz, int id, const string& nuevoNombre, const string& nuevoApellidoPaterno, const string& nuevoApellidoMaterno, const string& nuevoUsuario, const string& nuevaContrasenia, const string& nuevoEstatus);
+void editarCliente(Cliente* raiz, int id, const string& nuevoNombre, const string& nuevoApellidoPaterno, const string& nuevoApellidoMaterno, const string& nuevoUsuario, const string& nuevaContrasenia, const string& nuevoEstatus, int tipoUsuario);
 
 // Función para liberar la memoria del árbol
 void eliminarArbolClientes(Cliente* raiz);
@@ -143,11 +146,14 @@ void cargarTiendasEnComboBox(HWND hwndComboBox, Tienda* cabezaTiendas);
 
 Tienda* cabezaTienda = cargarTiendas("tiendas.bin");
 
+Tienda* buscarTienda(Tienda* inicio, int id);
+
 void agregarProducto(Producto*& cabeza, const string& codigo, const string& nombre, double precio, double costo, int existencias, int tienda);
 void liberarProductos(Producto*& cabeza);
 void guardarProductos(Producto* cabeza, const string& nombreArchivo);
 Producto* cargarProductos(const string& nombreArchivo);
 void mostrarProductosEnListBox(Producto* cabeza, HWND hwndListBox);
+void mostrarProductosEnListBoxUsuario(Producto* cabeza, HWND hwndListBox);
 
 Producto* cabezaProductos = cargarProductos("productos.bin");
 
@@ -160,6 +166,8 @@ INT_PTR CALLBACK fVentanaETienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 INT_PTR CALLBACK fVentanaRProductos(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 INT_PTR CALLBACK fVentanaDashboardUser(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK fVentanaComprar(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrev, PSTR cmdline, int nCmdShow) {
 
@@ -233,12 +241,13 @@ INT_PTR CALLBACK fVentanaLogin(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
                 usuarioLogueado = cliente->id;
                 TipoUsuario = cliente->tipoUsuario;
                 MessageBox(hwnd, "Inicio de sesión exitoso", "Éxito", MB_OK);
-                // Proceder con el flujo de la aplicación o cerrar la ventana de login
-                // Cerrar la ventana de login
                 EndDialog(hwnd, IDOK);
 
-                // Abrir la ventana de dashboard (suponiendo que es un diálogo)
-                DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
+                if(TipoUsuario == 1)
+                    DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
+                else
+                    DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHB_USER), hwnd, fVentanaDashboardUser);
+
             }
             else {
                 MessageBox(hwnd, "Usuario o contraseña incorrectos", "Error", MB_OK);
@@ -550,6 +559,14 @@ INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
                 else {
                     CheckRadioButton(hwnd, RD_EDITAR_ACTIVO, RD_EDITAR_SUSPENDIDO, RD_EDITAR_SUSPENDIDO);
                 }
+
+                // Comprobar el tipo de usuario y marcar el botón de radio si es "Admin"
+                if (clienteEditar->tipoUsuario == 1) {
+                    CheckRadioButton(hwnd, RD_EC_ADMIN, RD_EC_CLIENTE, RD_EC_ADMIN);
+                }
+                else {
+                    CheckRadioButton(hwnd, RD_EC_ADMIN, RD_EC_CLIENTE, RD_EC_CLIENTE);
+                }
             }
             else {
                 MessageBox(hwnd, "Cliente no encontrado", "Error", MB_OK | MB_ICONERROR);
@@ -564,6 +581,7 @@ INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             char apellidoMaterno[30];
             char usuario[30];
             char contrasenia[30];
+            int tipoUsuario = -1;
 
             // Obteniendo los textos desde los cuadros de texto de la interfaz
             GetDlgItemText(hwnd, TXT_EDITAR_NOMBRE, nombre, sizeof(nombre));
@@ -571,6 +589,18 @@ INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             GetDlgItemText(hwnd, TXT_EDITAR_APELLIDOM, apellidoMaterno, sizeof(apellidoMaterno));
             GetDlgItemText(hwnd, TXT_EDITAR_USUARIO, usuario, sizeof(usuario));
             GetDlgItemText(hwnd, TXT_EDITAR_CONTRA, contrasenia, sizeof(contrasenia));
+
+            // Verificar cuál RadioButton está seleccionado
+            if (IsDlgButtonChecked(hwnd, RD_EC_ADMIN) == BST_CHECKED) {
+                tipoUsuario = 1; // Administrador
+            }
+            else if (IsDlgButtonChecked(hwnd, RD_EC_CLIENTE) == BST_CHECKED) {
+                tipoUsuario = 0; // Cliente
+            }
+            else {
+                MessageBox(hwnd, "Debe seleccionar un tipo de usuario.", "Error", MB_OK | MB_ICONERROR);
+                break;
+            }
 
             // Validar que los campos no estén vacíos
             if (strlen(nombre) == 0 || strlen(apellidoPaterno) == 0 || strlen(usuario) == 0 || strlen(contrasenia) == 0) {
@@ -592,9 +622,8 @@ INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             }
 
             // Convertir los char* a string para llamar a la función editarCliente
-            editarCliente(raiz, idClienteEditar, string(nombre), string(apellidoPaterno), string(apellidoMaterno), string(usuario), string(contrasenia), nuevoEstatus);
+            editarCliente(raiz, idClienteEditar, string(nombre), string(apellidoPaterno), string(apellidoMaterno), string(usuario), string(contrasenia), nuevoEstatus, tipoUsuario);
 
-            MessageBox(hwnd, "Cliente editado exitosamente.", "Éxito", MB_OK | MB_ICONINFORMATION);
         } break;
 
 
@@ -956,15 +985,51 @@ INT_PTR CALLBACK fVentanaDashboardUser(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             SetMenu(hwnd, hMenu);
         }
 
+        //listar los productos
+        HWND hwndListBoxProductos = GetDlgItem(hwnd, LIST_DASHUSER_PRODUCTOS);
+        mostrarProductosEnListBoxUsuario(cabezaProductos, hwndListBoxProductos);
+
         return TRUE; // Devuelve TRUE para indicar que se ha inicializado correctamente
     }
 
     case WM_COMMAND:
+        
+        if (HIWORD(wParam) == LBN_SELCHANGE) { // Detectar cambio de selección en el ListBox
+            HWND hwndListBox = GetDlgItem(hwnd, LIST_DASHUSER_PRODUCTOS);
+            int index = (int)SendMessage(hwndListBox, LB_GETCURSEL, 0, 0); // Obtener el índice seleccionado
+
+            if (index != LB_ERR) {
+                // Recorre la lista de tiendas para encontrar la tienda correspondiente
+                Producto* actual = cabezaProductos;
+                int contador = 0;
+                while (actual != nullptr && contador < index) {
+                    actual = actual->siguiente;
+                    contador++;
+                }
+
+                if (actual != nullptr) {
+                    idProductoComprar = actual->codigo;
+
+                    Tienda* tienda = buscarTienda(cabezaTienda, actual->tienda);
+
+                    string existencia = to_string(actual->existencias);
+                    int precioEntero = static_cast<int>(actual->precio); // Convertir el precio a entero
+                    string precio = to_string(precioEntero);
+
+                    // Rellenar los cuadros de texto con la información del prdocupto
+                    SetDlgItemText(hwnd, LBL_DASHUSER_NOMBRE2, actual->nombre.c_str());
+                    SetDlgItemText(hwnd, LBL_DASHUSER_PRECIO2, precio.c_str());
+                    SetDlgItemText(hwnd, LBL_DASHUSER_EXISTENCIA2, existencia.c_str());
+                    SetDlgItemText(hwnd, LBL_DASHUSER_TIENDA2, tienda->nombre.c_str());
+                }
+            }
+        }
+
         switch (LOWORD(wParam)) {
         case BTNMENU2_INICIO: {
             EndDialog(hwnd, IDOK);
 
-            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            // Abrir la ventana de dashboard
             DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHB_USER), hwnd, fVentanaDashboardUser);
             break;
         }
@@ -981,8 +1046,110 @@ INT_PTR CALLBACK fVentanaDashboardUser(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_LOGIN), hwnd, fVentanaLogin);
         }break;
 
+        case BTN_DASHUSER_COMPRAR: {
+            if (idProductoComprar != "null") {
+                EndDialog(hwnd, IDOK);
+
+                // Abrir la ventana de dashboard
+                DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_COMPRARPRODUCTO), hwnd, fVentanaComprar);
+            }
+            else {
+                MessageBox(nullptr, "Selecciona un producto primero", "Info", MB_ICONEXCLAMATION);
+            }
+
+            break;
+        }break;
+
 
         
+        }
+
+        break;
+
+    case WM_DESTROY:
+        PostQuitMessage(9);
+        break;
+    }
+    return FALSE;
+}
+
+INT_PTR CALLBACK fVentanaComprar(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    switch (msg) {
+    case WM_CLOSE:
+        DestroyWindow(hwnd);
+        break;
+
+    case WM_INITDIALOG: {
+
+        SYSTEMTIME tiempo;
+        GetLocalTime(&tiempo); // Obtiene la fecha y hora actual del sistema
+
+        // Formatear la fecha como "DD/MM/YYYY"
+        ostringstream fecha;
+        fecha << tiempo.wDay + 1<< "/"
+            << tiempo.wMonth << "/"
+            << tiempo.wYear;
+        string fechaApp = fecha.str();
+
+        SetDlgItemText(hwnd, LBL_COMPP_FECHA2, fechaApp.c_str());
+        
+        Producto* aux = cabezaProductos;
+
+        while (aux != NULL) {
+
+            if (aux->codigo == idProductoComprar) {
+                // Convertir el nombre a una cadena de caracteres (si es necesario)
+                const char* nombreProducto = aux->nombre.c_str();
+
+                // Convertir el precio a cadena con formato adecuado
+                char precioProducto[20]; // Buffer suficiente para el precio formateado
+                snprintf(precioProducto, sizeof(precioProducto), "%.2f", aux->precio);
+
+                // Enviar los valores a los labels
+                SetDlgItemText(hwnd, LBL_COMPP_PRODUCTO, nombreProducto);
+                SetDlgItemText(hwnd, LBL_COMPP_PU, precioProducto);
+
+                break; // Salir del bucle una vez encontrado el producto
+            }
+            aux = aux->siguiente;
+        }
+
+        return TRUE; // Devuelve TRUE para indicar que se ha inicializado correctamente
+    }
+
+    case WM_COMMAND:
+
+        switch (LOWORD(wParam)) {
+        case BTNMENU2_INICIO: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHB_USER), hwnd, fVentanaDashboardUser);
+            break;
+        }
+        case BTNMENU2_SALIR: // Si tienes un botón de salir o algo similar
+            EndDialog(hwnd, 0);  // Cierra la ventana de dashboard
+            break;
+
+        case BTNMENU2_CERRARSESION: {
+            usuarioLogueado = 0;
+            TipoUsuario = -1;
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_LOGIN), hwnd, fVentanaLogin);
+        }break;
+
+        case BTN_COMPP_CANCELAR: {
+            idProductoComprar = "null";
+            EndDialog(hwnd, IDOK);
+            // Abrir la ventana de dashboard
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHB_USER), hwnd, fVentanaDashboardUser);
+            break;
+        }break;
+
+
+
         }
 
         break;
@@ -1550,6 +1717,18 @@ int obtenerIdTiendaPorIndice(HWND hwndComboBox, Tienda* cabezaTiendas) {
     return -1;
 }
 
+Tienda* buscarTienda(Tienda* inicio, int id) {
+    Tienda* actual = inicio;
+    while (actual != nullptr) {
+        if (actual->id == id) {
+            return actual;
+        }
+        actual = actual->siguiente;
+    }
+    return nullptr; // No encontrada
+}
+
+
 
 //------------------------------------Gestion de PRODUCTOS------------------------------------------------------------------
 
@@ -1735,6 +1914,26 @@ void mostrarProductosEnListBox(Producto* cabeza, HWND hwndListBox) {
     while (actual != nullptr) {
         // Formatear la cadena para mostrar la información del producto
         std::string productoInfo = (actual->codigo) + " " + actual->nombre;
+
+        SendMessage(hwndListBox, LB_ADDSTRING, 0, (LPARAM)productoInfo.c_str());
+        actual = actual->siguiente;
+    }
+}
+
+void mostrarProductosEnListBoxUsuario(Producto* cabeza, HWND hwndListBox) {
+    if (cabeza == nullptr) {
+        SendMessage(hwndListBox, LB_ADDSTRING, 0, (LPARAM)"No hay productos");
+        MessageBox(nullptr, "No hay productos para mostrar.", "Información", MB_ICONINFORMATION);
+        return;
+    }
+
+    // Limpiar el ListBox antes de agregar nuevos elementos
+    SendMessage(hwndListBox, LB_RESETCONTENT, 0, 0);
+
+    Producto* actual = cabeza;
+    while (actual != nullptr) {
+        // Formatear la cadena para mostrar la información del producto
+        std::string productoInfo = actual->nombre;
 
         SendMessage(hwndListBox, LB_ADDSTRING, 0, (LPARAM)productoInfo.c_str());
         actual = actual->siguiente;
