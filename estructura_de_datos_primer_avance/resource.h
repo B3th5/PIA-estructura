@@ -24,6 +24,7 @@
 #define DLG_DASHB_USER                  136
 #define IDR_MENU4                       138
 #define DLG_COMPRARPRODUCTO             139
+#define DLG_REPORTECOMPRAS              141
 #define IDC_btn_iniciarsesion           1001
 #define BTN_LOGIN_LOGIN                 1001
 #define IDC_btn_registrarse             1002
@@ -129,6 +130,7 @@
 #define LBL_COMPP_PRECIOUNI3            1117
 #define TXT_COMPP_DIRECCION             1118
 #define LBL_COMPP_FECHA                 1119
+#define LISTVIEW_REPORTE_COMPRAS        1120
 #define ID_INICIODESESI40001            40001
 #define ID_PEDIDOS_PEDIDOSDELCLIENTE    40002
 #define ID_VENTAS_VENTASPORTIENDA       40003
@@ -183,14 +185,16 @@
 #define BTNMENU2_SALIR                  40056
 #define ID_INICIO_INICIO                40057
 #define BTNMENU2_INICIO                 40058
+#define ID_REPORTES_COMPRAS             40059
+#define BTNMENU_REPORTE_COMPRA          40060
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        141
-#define _APS_NEXT_COMMAND_VALUE         40059
-#define _APS_NEXT_CONTROL_VALUE         1110
+#define _APS_NEXT_RESOURCE_VALUE        143
+#define _APS_NEXT_COMMAND_VALUE         40061
+#define _APS_NEXT_CONTROL_VALUE         1111
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

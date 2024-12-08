@@ -10,6 +10,7 @@
 #include <vector>
 #include <cctype>
 #include <sstream>
+#include <commctrl.h>
 
 using namespace std;
 
@@ -23,10 +24,20 @@ int idClienteEditar = 0;
 int idTiendaEditar = 0;
 
 string idProductoComprar = "null";
+double precioUnitario = 0.0;
+int idTiendaComprar = 0;
+string fechaAprox = "";
+
+string clienteComprar;
+string tiendaComprar;
+int ultimoIdCompra = 0;
 
 // Función para obtener la fecha actual
 string obtenerFechaActual();
 bool esNumero(const char* cadena);
+void inicializarListView(HWND hwndListView);
+void agregarFilaListView(HWND hwndListView, int id, const std::string& producto, int cantidad, double precioUnitario, double precioTotal);
+
 //----------------------------------------------------------------CLIENTES-----------------------------------------------------------------
 
 // Estructura del Cliente (nodo del árbol)
@@ -100,6 +111,32 @@ struct Producto {
     }
 };
 
+struct Compra {
+    int id;
+    string producto;
+    string direccion;
+    int cantidad;
+    double precioUnitario;
+    double precioTotal;
+    string fechaCompra;
+    string fechaAprox;
+    string estatus;
+    string cliente;
+    string tienda;
+    int idTienda;
+    int idCliente;
+    string idProducto;
+    Compra* anterior;
+    Compra* siguiente;
+
+    Compra(int id, const string& producto, const string& direccion, int cantidad, double precioUnitario, double precioTotal,
+        const string& fechaAprox, const string& cliente, const string& tienda, int idTienda, int idCliente, const string& idProducto)
+        : id(id), producto(producto), direccion(direccion), cantidad(cantidad), precioUnitario(precioUnitario), precioTotal(precioTotal),
+        fechaCompra(obtenerFechaActual()), fechaAprox(fechaAprox), estatus("Compra realizada"), cliente(cliente), tienda(tienda), idTienda(idTienda), idCliente(idCliente),
+        idProducto(idProducto), anterior(nullptr), siguiente(nullptr){}
+
+};
+
 // Función para agregar un cliente al árbol
 Cliente* agregarCliente(Cliente* raiz, int id, const string& nombre, const string& apellidoPaterno, const string& apellidoMaterno, const string& usuario, const string& contrasenia, const string& estatus, const string& fechaActualizo, int idUsuarioActualizo, int tipoUsuario);
 
@@ -157,6 +194,19 @@ void mostrarProductosEnListBoxUsuario(Producto* cabeza, HWND hwndListBox);
 
 Producto* cabezaProductos = cargarProductos("productos.bin");
 
+
+void agregarCompra(Compra*& cabeza, int id, const string& producto, const string& direccion,
+    int cantidad, double precioUnitario, const string& fechaAprox, const string& cliente, const string& tienda,
+    int idTienda, int idCliente, const string& idProducto);
+void liberarMemoriaCompras(Compra*& cabeza);
+
+void guardarCompras(Compra* cabeza, const string& nombreArchivo);
+Compra* cargarCompras(const string& nombreArchivo);
+
+Compra* cabezaCompras = cargarCompras("compras.bin");
+
+void cargarComprasEnListView(Compra* cabezaCompras, HWND hwndListView);
+
 INT_PTR CALLBACK fVentanaLogin(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaDashboard(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaRClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -164,6 +214,8 @@ INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 INT_PTR CALLBACK fVentanaRTienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaETienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaRProductos(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK fVentanaReporteCompra(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 
 INT_PTR CALLBACK fVentanaDashboardUser(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaComprar(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -204,6 +256,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrev, PSTR cmdline, int nCmdS
 
     guardarProductos(cabezaProductos, "productos.bin");
 
+    guardarCompras(cabezaCompras, "compras.bin");
+
+    //liberar memoria compras
+    liberarMemoriaCompras(cabezaCompras);
+
     //Liberar memoria de productos
     liberarProductos(cabezaProductos);
 
@@ -212,6 +269,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrev, PSTR cmdline, int nCmdS
 
     // Liberar memoria del árbol
     eliminarArbolClientes(raiz);
+
+
     
     return 0;
 }
@@ -231,8 +290,8 @@ INT_PTR CALLBACK fVentanaLogin(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
             char usuario[20];
             char contrasenia[20];
             bool usuarioAdmin = false;
-            GetDlgItemText(hwnd, TXT_LOGIN_USER, usuario, 256);
-            GetDlgItemText(hwnd, TXT_LOGIN_PASS, contrasenia, 256);
+            GetDlgItemText(hwnd, TXT_LOGIN_USER, usuario, 20);
+            GetDlgItemText(hwnd, TXT_LOGIN_PASS, contrasenia, 20);
 
             Cliente* cliente = buscarClientePorUsuario(raiz, usuario);
 
@@ -240,6 +299,8 @@ INT_PTR CALLBACK fVentanaLogin(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
             if (cliente != nullptr && strcmp(cliente->usuario.c_str(), usuario) == 0 && strcmp(cliente->contrasenia.c_str(), contrasenia) == 0) {
                 usuarioLogueado = cliente->id;
                 TipoUsuario = cliente->tipoUsuario;
+                clienteComprar = cliente->nombre;
+
                 MessageBox(hwnd, "Inicio de sesión exitoso", "Éxito", MB_OK);
                 EndDialog(hwnd, IDOK);
 
@@ -329,6 +390,12 @@ INT_PTR CALLBACK fVentanaDashboard(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_RC), hwnd, fVentanaRClientes);
             break;
         }
+        case BTNMENU_REPORTE_COMPRA: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTECOMPRAS), hwnd, fVentanaReporteCompra);
+        }break;
         case BTNMENU_DASHBOARD: {
             EndDialog(hwnd, IDOK);
 
@@ -371,6 +438,12 @@ INT_PTR CALLBACK fVentanaRClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_REPORTE_COMPRA: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTECOMPRAS), hwnd, fVentanaReporteCompra);
+        }break;
         case BTNMENU_REGISTRAR_PRODUCTOS: {
             EndDialog(hwnd, IDOK);
 
@@ -456,8 +529,13 @@ INT_PTR CALLBACK fVentanaRClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             raiz = agregarCliente(raiz, ultimoID, nombre, apellidoPaterno, apellidoMaterno, usuario, contrasenia, "Activo", obtenerFechaActual(), idUsuarioActualizo, tipoUsuario);
 
             // Verificar si el cliente fue agregado correctamente
-            if (raiz != nullptr) 
+            if (raiz != nullptr) {
                 MessageBox(hwnd, "Cliente agregado exitosamente.", "Éxito", MB_OK | MB_ICONINFORMATION);
+                EndDialog(hwnd, IDOK);
+
+                // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+                DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
+            }
             else 
                 MessageBox(hwnd, "Hubo un error al agregar el cliente.", "Error", MB_OK | MB_ICONERROR);
 
@@ -491,6 +569,12 @@ INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_REPORTE_COMPRA: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTECOMPRAS), hwnd, fVentanaReporteCompra);
+        }break;
         case BTNMENU_REGISTRAR_PRODUCTOS: {
             EndDialog(hwnd, IDOK);
 
@@ -623,7 +707,10 @@ INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
             // Convertir los char* a string para llamar a la función editarCliente
             editarCliente(raiz, idClienteEditar, string(nombre), string(apellidoPaterno), string(apellidoMaterno), string(usuario), string(contrasenia), nuevoEstatus, tipoUsuario);
+            EndDialog(hwnd, IDOK);
 
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
         } break;
 
 
@@ -656,6 +743,12 @@ INT_PTR CALLBACK fVentanaRTienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_REPORTE_COMPRA: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTECOMPRAS), hwnd, fVentanaReporteCompra);
+        }break;
         case BTNMENU_REGISTRAR_PRODUCTOS: {
             EndDialog(hwnd, IDOK);
 
@@ -717,7 +810,10 @@ INT_PTR CALLBACK fVentanaRTienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             ultimoIDTienda++;
 
             agregarTienda(cabezaTienda, ultimoIDTienda, nombre, direccion);
+            EndDialog(hwnd, IDOK);
 
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
         }break;
 
         }
@@ -784,6 +880,12 @@ INT_PTR CALLBACK fVentanaETienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             }
         }
         switch (LOWORD(wParam)) {
+        case BTNMENU_REPORTE_COMPRA: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTECOMPRAS), hwnd, fVentanaReporteCompra);
+        }break;
         case BTNMENU_REGISTRAR_PRODUCTOS: {
             EndDialog(hwnd, IDOK);
 
@@ -832,6 +934,10 @@ INT_PTR CALLBACK fVentanaETienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
         }break;
         case BTN_EDITART_MODIFICAR: {
             actualizarTienda(cabezaTienda, idTiendaEditar, hwnd);
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
         }break;
 
         }
@@ -958,7 +1064,18 @@ INT_PTR CALLBACK fVentanaRProductos(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             int existenciasInt = std::stoi(existencias);
             agregarProducto(cabezaProductos, codigo, nombre, precioDouble, costoDouble, existenciasInt, tiendaID);
             MessageBox(nullptr, "Se ha agregado la tienda correctamente", "Info", MB_ICONINFORMATION);
+
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
         } break;
+        case BTNMENU_REPORTE_COMPRA: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTECOMPRAS), hwnd, fVentanaReporteCompra);
+        }break;
 
 
         }
@@ -971,6 +1088,168 @@ INT_PTR CALLBACK fVentanaRProductos(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
     }
     return FALSE;
 }
+
+INT_PTR CALLBACK fVentanaReporteCompra(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    static HWND hwndListView;
+    switch (msg) {
+    case WM_CLOSE:
+        DestroyWindow(hwnd);
+        break;
+
+    case WM_INITDIALOG: {
+        // Cargar y asignar el menú (si es necesario y aplicable para un diálogo)
+        HMENU hMenu = LoadMenu((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(IDR_MENU3));
+        if (hMenu) {
+            SetMenu(hwnd, hMenu);
+        }
+
+        HWND hwndListView = GetDlgItem(hwnd, LISTVIEW_REPORTE_COMPRAS);
+
+        // Verifica que el control exista
+        if (hwndListView) {
+            // Configurar estilo como LVS_REPORT (tabla)
+            SetWindowLong(hwndListView, GWL_STYLE, GetWindowLong(hwndListView, GWL_STYLE) | LVS_REPORT);
+
+            // Agregar columnas
+            LVCOLUMN lvCol = { 0 };
+            lvCol.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+
+            // Columna "Producto"
+            char colProducto[] = "Producto";
+            lvCol.pszText = colProducto;
+            lvCol.cx = 100;
+            ListView_InsertColumn(hwndListView, 0, &lvCol);
+
+            // Columna "Cantidad"
+            char colCantidad[] = "Cantidad";
+            lvCol.pszText = colCantidad;
+            lvCol.cx = 70;
+            ListView_InsertColumn(hwndListView, 1, &lvCol);
+
+            // Columna "Precio Total"
+            char colPrecioTotal[] = "Precio Total";
+            lvCol.pszText = colPrecioTotal;
+            lvCol.cx = 90;
+            ListView_InsertColumn(hwndListView, 2, &lvCol);
+
+            // Columna "Fecha de compra"
+            char colFechaCompra[] = "Fecha compra";
+            lvCol.pszText = colFechaCompra;
+            lvCol.cx = 90;
+            ListView_InsertColumn(hwndListView, 3, &lvCol);
+
+            // Columna "Estatus"
+            char colEstatus[] = "Estatus";
+            lvCol.pszText = colEstatus;
+            lvCol.cx = 90;
+            ListView_InsertColumn(hwndListView, 4, &lvCol);
+
+            // Columna "Tienda"
+            char colTienda[] = "Tienda";
+            lvCol.pszText = colTienda;
+            lvCol.cx = 90;
+            ListView_InsertColumn(hwndListView, 5, &lvCol);
+
+            // Columna "Cliente"
+            char colCliente[] = "Cliente";
+            lvCol.pszText = colCliente;
+            lvCol.cx = 90;
+            ListView_InsertColumn(hwndListView, 6, &lvCol);
+
+            //// Agregar filas iniciales de ejemplo (opcional)
+            //LVITEM lvItem = { 0 };
+            //lvItem.mask = LVIF_TEXT;
+
+            //char producto[] = "Producto A"; // Buffer para el texto de la columna
+            //lvItem.pszText = producto;      // Texto de la primera columna
+            //lvItem.iItem = 0;               // Fila 0
+            //lvItem.iSubItem = 0;            // Columna 0
+            //ListView_InsertItem(hwndListView, &lvItem);
+
+            //// Agregar datos a las otras columnas
+            //char cantidad[10];
+            //snprintf(cantidad, sizeof(cantidad), "%d", 5); // Convertir el número a texto
+            //ListView_SetItemText(hwndListView, 0, 1, cantidad); // Fila 0, Columna 1
+
+            //char precioTotal[20];
+            //snprintf(precioTotal, sizeof(precioTotal), "$%.2f", 50.00); // Formatear el precio
+            //ListView_SetItemText(hwndListView, 0, 2, precioTotal); // Fila 0, Columna 2
+
+        }
+
+        cargarComprasEnListView(cabezaCompras, hwndListView);
+        return TRUE; // Devuelve TRUE para indicar que se ha inicializado correctamente
+    }
+
+    case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+        case BTNMENU_DASHBOARD: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
+            break;
+        }
+        case BTNMENU_SALIR: // Si tienes un botón de salir o algo similar
+            EndDialog(hwnd, 0);  // Cierra la ventana de dashboard
+            break;
+
+        case BTNMENU_SALIR_CERRARSESI: {
+            usuarioLogueado = 0;
+            TipoUsuario = -1;
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_LOGIN), hwnd, fVentanaLogin);
+        }break;
+
+        case BTNMENU_EDITAR_CLIENTES: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_CLIENTE), hwnd, fVentanaEClientes);
+        }break;
+
+        case BTNMENU_REGISTRAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_TIENDA), hwnd, fVentanaRTienda);
+        }break;
+
+        case BTNMENU_EDITAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_TIENDA), hwnd, fVentanaETienda);
+        }break;
+
+        case BTNMENU_REGISTRAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_PRODUCTOS), hwnd, fVentanaRProductos);
+        }break;
+
+        case BTNMENU_REPORTE_COMPRA: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTECOMPRAS), hwnd, fVentanaReporteCompra);
+        }break;
+
+
+        }
+
+        break;
+
+    case WM_DESTROY:
+        PostQuitMessage(9);
+        break;
+    }
+    return FALSE;
+}
+
 
 INT_PTR CALLBACK fVentanaDashboardUser(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
@@ -1048,6 +1327,11 @@ INT_PTR CALLBACK fVentanaDashboardUser(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 
         case BTN_DASHUSER_COMPRAR: {
             if (idProductoComprar != "null") {
+                char tienda[20];
+
+                GetDlgItemText(hwnd, LBL_DASHUSER_TIENDA2, tienda, sizeof(tienda));
+
+                tiendaComprar = tienda;
                 EndDialog(hwnd, IDOK);
 
                 // Abrir la ventana de dashboard
@@ -1091,6 +1375,8 @@ INT_PTR CALLBACK fVentanaComprar(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             << tiempo.wYear;
         string fechaApp = fecha.str();
 
+        fechaAprox = fechaApp;
+
         SetDlgItemText(hwnd, LBL_COMPP_FECHA2, fechaApp.c_str());
         
         Producto* aux = cabezaProductos;
@@ -1101,13 +1387,18 @@ INT_PTR CALLBACK fVentanaComprar(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                 // Convertir el nombre a una cadena de caracteres (si es necesario)
                 const char* nombreProducto = aux->nombre.c_str();
 
+                precioUnitario = aux->precio;
+
                 // Convertir el precio a cadena con formato adecuado
                 char precioProducto[20]; // Buffer suficiente para el precio formateado
                 snprintf(precioProducto, sizeof(precioProducto), "%.2f", aux->precio);
 
+                idTiendaComprar = aux->tienda;
                 // Enviar los valores a los labels
                 SetDlgItemText(hwnd, LBL_COMPP_PRODUCTO, nombreProducto);
                 SetDlgItemText(hwnd, LBL_COMPP_PU, precioProducto);
+                SetDlgItemText(hwnd, LBL_COMPP_PT, precioProducto);
+                SetDlgItemText(hwnd, TXT_COMPP_CANTIDAD, "1");
 
                 break; // Salir del bucle una vez encontrado el producto
             }
@@ -1147,8 +1438,90 @@ INT_PTR CALLBACK fVentanaComprar(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHB_USER), hwnd, fVentanaDashboardUser);
             break;
         }break;
+        case TXT_COMPP_CANTIDAD: {
+            if (HIWORD(wParam) == EN_CHANGE) {
+                // Leer el texto del textbox
+                char buffer[10];
+                GetDlgItemText(hwnd, TXT_COMPP_CANTIDAD, buffer, sizeof(buffer));
+               
+                // Convertir el texto ingresado a número
+                int cantidad = 0;
+                try {
+                    cantidad = stoi(buffer); // Convertir a entero
+                }
+                catch (...) {
+                    cantidad = 0; // En caso de error, cantidad será 0
+                }
 
+                // Calcular el total
+                double total = cantidad * precioUnitario;
+                
+                // Formatear el total con dos decimales
+                char totalTexto[20];
+                snprintf(totalTexto, sizeof(totalTexto), "%.2f", total);
 
+                // Actualizar el label con el total
+                SetDlgItemText(hwnd, LBL_COMPP_PT, totalTexto);
+            }
+        }break;
+
+        case BTN_COMPP_COMPRAR: {
+            char producto[30], direccion[30], cantidadStr[30], precioUStr[30], precioTStr[30];
+
+            // Obtener los datos de los controles
+            GetDlgItemText(hwnd, LBL_COMPP_PRODUCTO, producto, sizeof(producto));
+            GetDlgItemText(hwnd, TXT_COMPP_DIRECCION, direccion, sizeof(direccion));
+            GetDlgItemText(hwnd, TXT_COMPP_CANTIDAD, cantidadStr, sizeof(cantidadStr));
+            GetDlgItemText(hwnd, LBL_COMPP_PU, precioUStr, sizeof(precioUStr));
+            GetDlgItemText(hwnd, LBL_COMPP_PT, precioTStr, sizeof(precioTStr));
+
+            // Convertir las cadenas a sus respectivos tipos
+            int cantidad = 0;
+            double precioUnitario = 0.0;
+            try {
+                cantidad = stoi(cantidadStr);          // Convertir cantidad a entero
+                precioUnitario = stod(precioUStr);    // Convertir precio unitario a double
+            }
+            catch (...) {
+                MessageBox(hwnd, "Datos inválidos. Verifique la cantidad y precio.", "Error", MB_OK | MB_ICONERROR);
+                break;
+            }
+
+            // Verificar datos obligatorios
+            if (strlen(producto) == 0 || strlen(direccion) == 0 || cantidad <= 0 || precioUnitario <= 0.0) {
+                MessageBox(hwnd, "Todos los campos son obligatorios y deben ser válidos.", "Error", MB_OK | MB_ICONERROR);
+                break;
+            }
+            ultimoIdCompra++;
+            // Preparar la cadena para el MessageBox
+            stringstream msg;
+            msg << "Compra registrada con éxito." "\n"
+                << "ID: " << ultimoIdCompra << "\n"
+                << "Tienda: " << tiendaComprar << "\n"
+                << "Producto: " << producto << "\n"
+                << "Dirección: " << direccion << "\n"
+                << "Cantidad: " << cantidad << "\n"
+                << "Precio Unitario: $" << precioUnitario << "\n"
+                << "Precio Total: $" << (cantidad * precioUnitario) << "\n"
+                << "Fecha Aproximada: " << fechaAprox << "\n"
+                << "Cliente: " << clienteComprar;
+                //<< "ID Tienda: " << idTiendaComprar << "\n"
+                //<< "ID Cliente: " << usuarioLogueado << "\n"
+                //<< "ID Producto: " << idProductoComprar;
+
+            // Mostrar el MessageBox con todos los datos
+
+            // Agregar la compra a la lista
+            agregarCompra(cabezaCompras, ultimoIdCompra, producto, direccion, cantidad, precioUnitario, fechaAprox, clienteComprar, tiendaComprar,
+                idTiendaComprar, usuarioLogueado, idProductoComprar);
+
+            MessageBox(hwnd, msg.str().c_str(), "Información", MB_OK | MB_ICONINFORMATION);
+
+            idProductoComprar = "null";
+            EndDialog(hwnd, IDOK);
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHB_USER), hwnd, fVentanaDashboardUser);
+
+        }break;
 
         }
 
@@ -1948,4 +2321,253 @@ bool esNumero(const char* cadena) {
         }
     }
     return true;
+}
+
+
+//---------------------------------------------Gestion de COMPRAS ---------------------------------------------------------------
+
+void agregarCompra(Compra*& cabeza, int id, const string& producto, const string& direccion,
+    int cantidad, double precioUnitario, const string& fechaAprox, const string& cliente, const string& tienda,
+    int idTienda, int idCliente, const string& idProducto) {
+    if (cantidad <= 0) {
+        MessageBox(nullptr, "No se puede agregar la compra. La cantidad debe ser mayor a 0.", "Error", MB_OK | MB_ICONERROR);
+        return;
+    }
+
+    // Verificar si ya existe una compra con el mismo ID (si aplica)
+    Compra* actual = cabeza;
+    while (actual != nullptr) {
+        if (actual->id == id) {
+            MessageBox(nullptr, "No se puede agregar la compra. Ya existe una compra con el mismo ID.", "Error", MB_OK | MB_ICONERROR);
+            return;
+        }
+        actual = actual->siguiente;
+    }
+
+    // Calcular el precio total
+    double precioTotal = cantidad * precioUnitario;
+
+    // Crear la nueva compra
+    Compra* nuevaCompra = new Compra(id, producto, direccion, cantidad, precioUnitario, precioTotal, fechaAprox, cliente, tienda, idTienda, idCliente, idProducto);
+
+    if (cabeza == nullptr) {
+        // Si la lista está vacía, la nueva compra será la cabeza
+        cabeza = nuevaCompra;
+    }
+    else {
+        // Insertar al final de la lista
+        actual = cabeza;
+        while (actual->siguiente != nullptr) {
+            actual = actual->siguiente;
+        }
+        actual->siguiente = nuevaCompra;
+        nuevaCompra->anterior = actual;
+    }
+}
+
+
+void liberarMemoriaCompras(Compra*& cabeza) {
+    while (cabeza != nullptr) {
+        Compra* temp = cabeza;
+        cabeza = cabeza->siguiente;
+        delete temp; // Liberar el nodo actual
+    }
+}
+
+void guardarCompras(Compra* cabeza, const string& nombreArchivo) {
+    ofstream archivo(nombreArchivo, ios::binary);
+    if (!archivo) {
+        MessageBox(nullptr, "No se pudo abrir el archivo de COMPRAS para guardar", "Error", MB_ICONERROR);
+        return;
+    }
+
+    Compra* actual = cabeza;
+    while (actual != nullptr) {
+        // Escribir datos simples
+        archivo.write(reinterpret_cast<char*>(&actual->id), sizeof(actual->id));
+        archivo.write(reinterpret_cast<char*>(&actual->cantidad), sizeof(actual->cantidad));
+        archivo.write(reinterpret_cast<char*>(&actual->precioUnitario), sizeof(actual->precioUnitario));
+        archivo.write(reinterpret_cast<char*>(&actual->precioTotal), sizeof(actual->precioTotal));
+        archivo.write(reinterpret_cast<char*>(&actual->idTienda), sizeof(actual->idTienda));
+        archivo.write(reinterpret_cast<char*>(&actual->idCliente), sizeof(actual->idCliente));
+
+        // Escribir strings con longitud
+        size_t size;
+
+        size = actual->producto.size();
+        archivo.write(reinterpret_cast<char*>(&size), sizeof(size));
+        archivo.write(actual->producto.c_str(), size);
+
+        size = actual->direccion.size();
+        archivo.write(reinterpret_cast<char*>(&size), sizeof(size));
+        archivo.write(actual->direccion.c_str(), size);
+
+        size = actual->fechaCompra.size();
+        archivo.write(reinterpret_cast<char*>(&size), sizeof(size));
+        archivo.write(actual->fechaCompra.c_str(), size);
+
+        size = actual->fechaAprox.size();
+        archivo.write(reinterpret_cast<char*>(&size), sizeof(size));
+        archivo.write(actual->fechaAprox.c_str(), size);
+
+        size = actual->estatus.size();
+        archivo.write(reinterpret_cast<char*>(&size), sizeof(size));
+        archivo.write(actual->estatus.c_str(), size);
+
+        size = actual->cliente.size();
+        archivo.write(reinterpret_cast<char*>(&size), sizeof(size));
+        archivo.write(actual->cliente.c_str(), size);
+
+        size = actual->tienda.size();
+        archivo.write(reinterpret_cast<char*>(&size), sizeof(size));
+        archivo.write(actual->tienda.c_str(), size);
+
+        size = actual->idProducto.size();
+        archivo.write(reinterpret_cast<char*>(&size), sizeof(size));
+        archivo.write(actual->idProducto.c_str(), size);
+
+        actual = actual->siguiente;
+    }
+
+    archivo.close();
+}
+
+Compra* cargarCompras(const string& nombreArchivo) {
+    ifstream archivo(nombreArchivo, ios::binary);
+    if (!archivo) {
+        MessageBox(nullptr, "No se pudo abrir el archivo de COMPRAS para cargar", "Error", MB_ICONERROR);
+        return nullptr;
+    }
+
+    Compra* cabeza = nullptr;
+    Compra* cola = nullptr;
+
+    while (true) {
+        Compra* nuevaCompra = new Compra(0, "", "", 0, 0.0, 0.0, "", "", "", 0, 0, ""); // Nodo temporal
+
+        // Leer datos simples
+        archivo.read(reinterpret_cast<char*>(&nuevaCompra->id), sizeof(nuevaCompra->id));
+        if (archivo.eof()) {
+            delete nuevaCompra;
+            break;
+        }
+
+        // Actualizar el último ID si el actual es mayor
+        if (nuevaCompra->id > ultimoIdCompra) {
+            ultimoIdCompra = nuevaCompra->id;
+        }
+
+        archivo.read(reinterpret_cast<char*>(&nuevaCompra->cantidad), sizeof(nuevaCompra->cantidad));
+        archivo.read(reinterpret_cast<char*>(&nuevaCompra->precioUnitario), sizeof(nuevaCompra->precioUnitario));
+        archivo.read(reinterpret_cast<char*>(&nuevaCompra->precioTotal), sizeof(nuevaCompra->precioTotal));
+        archivo.read(reinterpret_cast<char*>(&nuevaCompra->idTienda), sizeof(nuevaCompra->idTienda));
+        archivo.read(reinterpret_cast<char*>(&nuevaCompra->idCliente), sizeof(nuevaCompra->idCliente));
+
+        // Leer strings con longitud
+        size_t size;
+        char buffer[256]; // Buffer temporal para strings
+
+        archivo.read(reinterpret_cast<char*>(&size), sizeof(size));
+        archivo.read(buffer, size);
+        buffer[size] = '\0';
+        nuevaCompra->producto = buffer;
+
+        archivo.read(reinterpret_cast<char*>(&size), sizeof(size));
+        archivo.read(buffer, size);
+        buffer[size] = '\0';
+        nuevaCompra->direccion = buffer;
+
+        archivo.read(reinterpret_cast<char*>(&size), sizeof(size));
+        archivo.read(buffer, size);
+        buffer[size] = '\0';
+        nuevaCompra->fechaCompra = buffer;
+
+        archivo.read(reinterpret_cast<char*>(&size), sizeof(size));
+        archivo.read(buffer, size);
+        buffer[size] = '\0';
+        nuevaCompra->fechaAprox = buffer;
+
+        archivo.read(reinterpret_cast<char*>(&size), sizeof(size));
+        archivo.read(buffer, size);
+        buffer[size] = '\0';
+        nuevaCompra->estatus = buffer;
+
+        archivo.read(reinterpret_cast<char*>(&size), sizeof(size));
+        archivo.read(buffer, size);
+        buffer[size] = '\0';
+        nuevaCompra->cliente = buffer;
+
+        archivo.read(reinterpret_cast<char*>(&size), sizeof(size));
+        archivo.read(buffer, size);
+        buffer[size] = '\0';
+        nuevaCompra->tienda = buffer;
+
+        archivo.read(reinterpret_cast<char*>(&size), sizeof(size));
+        archivo.read(buffer, size);
+        buffer[size] = '\0';
+        nuevaCompra->idProducto = buffer;
+
+        // Enlazar en la lista
+        nuevaCompra->siguiente = nullptr;
+        nuevaCompra->anterior = cola;
+        if (cola != nullptr) {
+            cola->siguiente = nuevaCompra;
+        }
+        else {
+            cabeza = nuevaCompra;
+        }
+        cola = nuevaCompra;
+    }
+
+    archivo.close();
+    return cabeza;
+}
+
+
+void cargarComprasEnListView(Compra* cabezaCompras, HWND hwndListView) {
+    Compra* actual = cabezaCompras;
+    int index = 0; // Contador para las filas del ListView
+
+    // Recorremos la lista de compras
+    while (actual != nullptr) {
+        LVITEM lvItem = { 0 };
+        lvItem.mask = LVIF_TEXT;
+        lvItem.iItem = index; // Fila
+        lvItem.iSubItem = 0;  // Primera columna (Producto)
+
+        // Convertir el string producto a un arreglo de char
+        char producto[200];  // Asegúrate de que el tamaño sea adecuado
+        strcpy_s(producto, sizeof(producto), actual->producto.c_str());
+        lvItem.pszText = producto;
+
+        ListView_InsertItem(hwndListView, &lvItem);
+
+        // Insertar los datos de cada columna
+        char cantidad[20];
+        char precioTotal[20];
+        char fechaCompra[30];
+        char estatus[30];
+        char tienda[30];
+        char cliente[30];
+
+        // Convertir datos a cadenas de caracteres
+        _itoa(actual->cantidad, cantidad, 10);    // Convertir cantidad a cadena
+        sprintf_s(precioTotal, "%.2f", actual->precioTotal);  // Convertir precioTotal a cadena
+        strcpy_s(fechaCompra, sizeof(fechaCompra), actual->fechaCompra.c_str());
+        strcpy_s(estatus, sizeof(estatus), actual->estatus.c_str());
+        strcpy_s(tienda, sizeof(tienda), actual->tienda.c_str());
+        strcpy_s(cliente, sizeof(cliente), actual->cliente.c_str());
+
+        // Insertar las demás columnas
+        ListView_SetItemText(hwndListView, index, 1, cantidad);    // Cantidad
+        ListView_SetItemText(hwndListView, index, 2, precioTotal);  // Precio Total
+        ListView_SetItemText(hwndListView, index, 3, fechaCompra);  // Fecha Compra
+        ListView_SetItemText(hwndListView, index, 4, estatus);     // Estatus
+        ListView_SetItemText(hwndListView, index, 5, tienda);      // Tienda
+        ListView_SetItemText(hwndListView, index, 6, cliente);     // Cliente
+
+        // Avanzar al siguiente nodo
+        actual = actual->siguiente;
+        index++; // Aumentar el índice de la fila
+    }
 }
