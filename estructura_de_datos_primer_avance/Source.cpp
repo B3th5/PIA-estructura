@@ -35,9 +35,6 @@ int ultimoIdCompra = 0;
 // Función para obtener la fecha actual
 string obtenerFechaActual();
 bool esNumero(const char* cadena);
-void inicializarListView(HWND hwndListView);
-void agregarFilaListView(HWND hwndListView, int id, const std::string& producto, int cantidad, double precioUnitario, double precioTotal);
-
 //----------------------------------------------------------------CLIENTES-----------------------------------------------------------------
 
 // Estructura del Cliente (nodo del árbol)
@@ -206,6 +203,10 @@ Compra* cargarCompras(const string& nombreArchivo);
 Compra* cabezaCompras = cargarCompras("compras.bin");
 
 void cargarComprasEnListView(Compra* cabezaCompras, HWND hwndListView);
+void cargarComprasEnListViewCliente(Compra* cabezaCompras, HWND hwndListView);
+void cargarComprasEnListViewTienda(Compra* cabezaCompras, HWND hwndListView, int tienda);
+void cargarComprasEnListViewProducto(Compra* cabezaCompras, HWND hwndListView, string producto);
+
 
 INT_PTR CALLBACK fVentanaLogin(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaDashboard(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -215,6 +216,8 @@ INT_PTR CALLBACK fVentanaRTienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 INT_PTR CALLBACK fVentanaETienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaRProductos(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaReporteCompra(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK fVentanaReporteCompraPorTienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK fVentanaReporteCompraPorProducto(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 
 INT_PTR CALLBACK fVentanaDashboardUser(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -352,26 +355,33 @@ INT_PTR CALLBACK fVentanaDashboard(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_REPORTE_PORPRODUCTO: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORPRODUCTO), hwnd, fVentanaReporteCompraPorProducto);
+        }break;
+        case BTNMENU_REPORTE_PORTIENDA: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORTIENDA), hwnd, fVentanaReporteCompraPorTienda);
+        }break;
         case BTNMENU_REGISTRAR_PRODUCTOS: {
             EndDialog(hwnd, IDOK);
 
-            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
             DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_PRODUCTOS), hwnd, fVentanaRProductos);
         }break;
         case BTNMENU_EDITAR_TIENDAS: {
             EndDialog(hwnd, IDOK);
 
-            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
             DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_TIENDA), hwnd, fVentanaETienda);
         }break;
         case BTNMENU_REGISTRAR_TIENDAS: {
             EndDialog(hwnd, IDOK);
 
-            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
             DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_TIENDA), hwnd, fVentanaRTienda);
         }break;
-        case BTNMENU_SALIR: // Si tienes un botón de salir o algo similar
-            EndDialog(hwnd, 0);  // Cierra la ventana de dashboard
+        case BTNMENU_SALIR: 
+            EndDialog(hwnd, 0);  
             break;
 
         case BTNMENU_SALIR_CERRARSESI: {
@@ -379,34 +389,29 @@ INT_PTR CALLBACK fVentanaDashboard(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             TipoUsuario = -1;
             EndDialog(hwnd, IDOK);
 
-            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
             DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_LOGIN), hwnd, fVentanaLogin);
             break;
         }
         case BTNMENU_REGISTRAR_CLIENTES: {
             EndDialog(hwnd, IDOK);
 
-            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
             DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_RC), hwnd, fVentanaRClientes);
             break;
         }
         case BTNMENU_REPORTE_COMPRA: {
             EndDialog(hwnd, IDOK);
 
-            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
             DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTECOMPRAS), hwnd, fVentanaReporteCompra);
         }break;
         case BTNMENU_DASHBOARD: {
             EndDialog(hwnd, IDOK);
 
-            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
             DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
             break;
         }
         case BTNMENU_EDITAR_CLIENTES: {
             EndDialog(hwnd, IDOK);
 
-            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
             DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_CLIENTE), hwnd, fVentanaEClientes);
         }
 
@@ -438,6 +443,17 @@ INT_PTR CALLBACK fVentanaRClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_REPORTE_PORPRODUCTO: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORPRODUCTO), hwnd, fVentanaReporteCompraPorProducto);
+        }break;
+        case BTNMENU_REPORTE_PORTIENDA: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORTIENDA), hwnd, fVentanaReporteCompraPorTienda);
+        }break;
         case BTNMENU_REPORTE_COMPRA: {
             EndDialog(hwnd, IDOK);
 
@@ -569,6 +585,17 @@ INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_REPORTE_PORPRODUCTO: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORPRODUCTO), hwnd, fVentanaReporteCompraPorProducto);
+        }break;
+        case BTNMENU_REPORTE_PORTIENDA: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORTIENDA), hwnd, fVentanaReporteCompraPorTienda);
+        }break;
         case BTNMENU_REPORTE_COMPRA: {
             EndDialog(hwnd, IDOK);
 
@@ -743,6 +770,17 @@ INT_PTR CALLBACK fVentanaRTienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_REPORTE_PORPRODUCTO: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORPRODUCTO), hwnd, fVentanaReporteCompraPorProducto);
+        }break;
+        case BTNMENU_REPORTE_PORTIENDA: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORTIENDA), hwnd, fVentanaReporteCompraPorTienda);
+        }break;
         case BTNMENU_REPORTE_COMPRA: {
             EndDialog(hwnd, IDOK);
 
@@ -880,6 +918,17 @@ INT_PTR CALLBACK fVentanaETienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             }
         }
         switch (LOWORD(wParam)) {
+        case BTNMENU_REPORTE_PORPRODUCTO: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORPRODUCTO), hwnd, fVentanaReporteCompraPorProducto);
+        }break;
+        case BTNMENU_REPORTE_PORTIENDA: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORTIENDA), hwnd, fVentanaReporteCompraPorTienda);
+        }break;
         case BTNMENU_REPORTE_COMPRA: {
             EndDialog(hwnd, IDOK);
 
@@ -972,6 +1021,17 @@ INT_PTR CALLBACK fVentanaRProductos(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_REPORTE_PORPRODUCTO: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORPRODUCTO), hwnd, fVentanaReporteCompraPorProducto);
+        }break;
+        case BTNMENU_REPORTE_PORTIENDA: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORTIENDA), hwnd, fVentanaReporteCompraPorTienda);
+        }break;
         case BTNMENU_DASHBOARD: {
             EndDialog(hwnd, IDOK);
 
@@ -1097,11 +1157,6 @@ INT_PTR CALLBACK fVentanaReporteCompra(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         break;
 
     case WM_INITDIALOG: {
-        // Cargar y asignar el menú (si es necesario y aplicable para un diálogo)
-        HMENU hMenu = LoadMenu((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(IDR_MENU3));
-        if (hMenu) {
-            SetMenu(hwnd, hMenu);
-        }
 
         HWND hwndListView = GetDlgItem(hwnd, LISTVIEW_REPORTE_COMPRAS);
 
@@ -1155,34 +1210,42 @@ INT_PTR CALLBACK fVentanaReporteCompra(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             lvCol.pszText = colCliente;
             lvCol.cx = 90;
             ListView_InsertColumn(hwndListView, 6, &lvCol);
-
-            //// Agregar filas iniciales de ejemplo (opcional)
-            //LVITEM lvItem = { 0 };
-            //lvItem.mask = LVIF_TEXT;
-
-            //char producto[] = "Producto A"; // Buffer para el texto de la columna
-            //lvItem.pszText = producto;      // Texto de la primera columna
-            //lvItem.iItem = 0;               // Fila 0
-            //lvItem.iSubItem = 0;            // Columna 0
-            //ListView_InsertItem(hwndListView, &lvItem);
-
-            //// Agregar datos a las otras columnas
-            //char cantidad[10];
-            //snprintf(cantidad, sizeof(cantidad), "%d", 5); // Convertir el número a texto
-            //ListView_SetItemText(hwndListView, 0, 1, cantidad); // Fila 0, Columna 1
-
-            //char precioTotal[20];
-            //snprintf(precioTotal, sizeof(precioTotal), "$%.2f", 50.00); // Formatear el precio
-            //ListView_SetItemText(hwndListView, 0, 2, precioTotal); // Fila 0, Columna 2
-
         }
 
-        cargarComprasEnListView(cabezaCompras, hwndListView);
+        if (TipoUsuario == 1) {
+            // Cargar y asignar el menú (si es necesario y aplicable para un diálogo)
+            HMENU hMenu = LoadMenu((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(IDR_MENU3));
+            if (hMenu) {
+                SetMenu(hwnd, hMenu);
+            }
+            cargarComprasEnListView(cabezaCompras, hwndListView);
+        }
+        else {
+            HMENU hMenu = LoadMenu((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(IDR_MENU4));
+            if (hMenu) {
+                SetMenu(hwnd, hMenu);
+            }
+            cargarComprasEnListViewCliente(cabezaCompras, hwndListView);
+        }
+
+        
+
         return TRUE; // Devuelve TRUE para indicar que se ha inicializado correctamente
     }
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_REPORTE_PORPRODUCTO: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORPRODUCTO), hwnd, fVentanaReporteCompraPorProducto);
+        }break;
+        case BTNMENU_REPORTE_PORTIENDA: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORTIENDA), hwnd, fVentanaReporteCompraPorTienda);
+        }break;
         case BTNMENU_DASHBOARD: {
             EndDialog(hwnd, IDOK);
 
@@ -1236,6 +1299,372 @@ INT_PTR CALLBACK fVentanaReporteCompra(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 
             // Abrir la ventana de dashboard (suponiendo que es un diálogo)
             DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTECOMPRAS), hwnd, fVentanaReporteCompra);
+        }break;
+        case BTNMENU2_INICIO: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHB_USER), hwnd, fVentanaDashboardUser);
+            break;
+        }
+        case BTNMENU2_SALIR: // Si tienes un botón de salir o algo similar
+            EndDialog(hwnd, 0);  // Cierra la ventana de dashboard
+            break;
+
+        case BTNMENU2_CERRARSESION: {
+            usuarioLogueado = 0;
+            TipoUsuario = -1;
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_LOGIN), hwnd, fVentanaLogin);
+        }break;
+
+
+        }
+
+        break;
+
+    case WM_DESTROY:
+        PostQuitMessage(9);
+        break;
+    }
+    return FALSE;
+}
+
+INT_PTR CALLBACK fVentanaReporteCompraPorTienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    static HWND hwndListView;
+    switch (msg) {
+    case WM_CLOSE:
+        DestroyWindow(hwnd);
+        break;
+
+    case WM_INITDIALOG: {
+
+        hwndListView = GetDlgItem(hwnd, LISTVIEW_REPORTE_PORTIENDAS);
+
+        // Verifica que el control exista
+        if (hwndListView) {
+            // Configurar estilo como LVS_REPORT (tabla)
+            SetWindowLong(hwndListView, GWL_STYLE, GetWindowLong(hwndListView, GWL_STYLE) | LVS_REPORT);
+
+            // Agregar columnas
+            LVCOLUMN lvCol = { 0 };
+            lvCol.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+
+            // Columna "Producto"
+            char colProducto[] = "Producto";
+            lvCol.pszText = colProducto;
+            lvCol.cx = 100;
+            ListView_InsertColumn(hwndListView, 0, &lvCol);
+
+            // Columna "Cantidad"
+            char colCantidad[] = "Cantidad";
+            lvCol.pszText = colCantidad;
+            lvCol.cx = 70;
+            ListView_InsertColumn(hwndListView, 1, &lvCol);
+
+            // Columna "Precio Total"
+            char colPrecioTotal[] = "Precio Total";
+            lvCol.pszText = colPrecioTotal;
+            lvCol.cx = 90;
+            ListView_InsertColumn(hwndListView, 2, &lvCol);
+
+            // Columna "Fecha de compra"
+            char colFechaCompra[] = "Fecha compra";
+            lvCol.pszText = colFechaCompra;
+            lvCol.cx = 90;
+            ListView_InsertColumn(hwndListView, 3, &lvCol);
+
+            // Columna "Estatus"
+            char colEstatus[] = "Estatus";
+            lvCol.pszText = colEstatus;
+            lvCol.cx = 90;
+            ListView_InsertColumn(hwndListView, 4, &lvCol);
+
+            // Columna "Tienda"
+            char colTienda[] = "Tienda";
+            lvCol.pszText = colTienda;
+            lvCol.cx = 90;
+            ListView_InsertColumn(hwndListView, 5, &lvCol);
+
+            // Columna "Cliente"
+            char colCliente[] = "Cliente";
+            lvCol.pszText = colCliente;
+            lvCol.cx = 90;
+            ListView_InsertColumn(hwndListView, 6, &lvCol);
+        }
+
+        // Cargar y asignar el menú (si es necesario y aplicable para un diálogo)
+        HMENU hMenu = LoadMenu((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(IDR_MENU3));
+        if (hMenu) {
+            SetMenu(hwnd, hMenu);
+        }
+        
+        HWND hwndListBoxTiendas = GetDlgItem(hwnd, LIST_REPORTE_PORTIENDA);
+        mostrarTiendasEnListBox(cabezaTienda, hwndListBoxTiendas);
+       
+        return TRUE; // Devuelve TRUE para indicar que se ha inicializado correctamente
+    }
+
+    case WM_COMMAND:
+        if (HIWORD(wParam) == LBN_SELCHANGE) { // Detectar cambio de selección en el ListBox
+            HWND hwndListBox = GetDlgItem(hwnd, LIST_REPORTE_PORTIENDA);
+            int index = (int)SendMessage(hwndListBox, LB_GETCURSEL, 0, 0); // Obtener el índice seleccionado
+
+            ListView_DeleteAllItems(hwndListView);
+
+            if (index != LB_ERR) {
+                // Recorre la lista de tiendas para encontrar la tienda correspondiente
+                Tienda* actual = cabezaTienda;
+                int contador = 0;
+                while (actual != nullptr && contador < index) {
+                    actual = actual->siguiente;
+                    contador++;
+                }
+
+                if (actual != nullptr) {
+                    //aqui ya la encontro
+                    cargarComprasEnListViewTienda(cabezaCompras, hwndListView, actual->id);
+                }
+            }
+        }
+        switch (LOWORD(wParam)) {
+        case BTNMENU_REPORTE_PORPRODUCTO: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORPRODUCTO), hwnd, fVentanaReporteCompraPorProducto);
+        }break;
+        case BTNMENU_DASHBOARD: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
+            break;
+        }
+        case BTNMENU_SALIR: // Si tienes un botón de salir o algo similar
+            EndDialog(hwnd, 0);  // Cierra la ventana de dashboard
+            break;
+
+        case BTNMENU_SALIR_CERRARSESI: {
+            usuarioLogueado = 0;
+            TipoUsuario = -1;
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_LOGIN), hwnd, fVentanaLogin);
+        }break;
+
+        case BTNMENU_EDITAR_CLIENTES: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_CLIENTE), hwnd, fVentanaEClientes);
+        }break;
+
+        case BTNMENU_REGISTRAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_TIENDA), hwnd, fVentanaRTienda);
+        }break;
+
+        case BTNMENU_EDITAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_TIENDA), hwnd, fVentanaETienda);
+        }break;
+
+        case BTNMENU_REGISTRAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_PRODUCTOS), hwnd, fVentanaRProductos);
+        }break;
+
+        case BTNMENU_REPORTE_COMPRA: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTECOMPRAS), hwnd, fVentanaReporteCompra);
+        }break;
+
+        case BTNMENU_REPORTE_PORTIENDA: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORTIENDA), hwnd, fVentanaReporteCompraPorTienda);
+        }break;
+
+
+        }
+
+        break;
+
+    case WM_DESTROY:
+        PostQuitMessage(9);
+        break;
+    }
+    return FALSE;
+}
+
+INT_PTR CALLBACK fVentanaReporteCompraPorProducto(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    static HWND hwndListView;
+    switch (msg) {
+    case WM_CLOSE:
+        DestroyWindow(hwnd);
+        break;
+
+    case WM_INITDIALOG: {
+
+        hwndListView = GetDlgItem(hwnd, LISTVIEW_REPORTE_PORPRODUCTO);
+
+        // Verifica que el control exista
+        if (hwndListView) {
+            // Configurar estilo como LVS_REPORT (tabla)
+            SetWindowLong(hwndListView, GWL_STYLE, GetWindowLong(hwndListView, GWL_STYLE) | LVS_REPORT);
+
+            // Agregar columnas
+            LVCOLUMN lvCol = { 0 };
+            lvCol.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+
+            // Columna "Producto"
+            char colProducto[] = "Producto";
+            lvCol.pszText = colProducto;
+            lvCol.cx = 100;
+            ListView_InsertColumn(hwndListView, 0, &lvCol);
+
+            // Columna "Cantidad"
+            char colCantidad[] = "Cantidad";
+            lvCol.pszText = colCantidad;
+            lvCol.cx = 70;
+            ListView_InsertColumn(hwndListView, 1, &lvCol);
+
+            // Columna "Precio Total"
+            char colPrecioTotal[] = "Precio Total";
+            lvCol.pszText = colPrecioTotal;
+            lvCol.cx = 90;
+            ListView_InsertColumn(hwndListView, 2, &lvCol);
+
+            // Columna "Fecha de compra"
+            char colFechaCompra[] = "Fecha compra";
+            lvCol.pszText = colFechaCompra;
+            lvCol.cx = 90;
+            ListView_InsertColumn(hwndListView, 3, &lvCol);
+
+            // Columna "Estatus"
+            char colEstatus[] = "Estatus";
+            lvCol.pszText = colEstatus;
+            lvCol.cx = 90;
+            ListView_InsertColumn(hwndListView, 4, &lvCol);
+
+            // Columna "Tienda"
+            char colTienda[] = "Tienda";
+            lvCol.pszText = colTienda;
+            lvCol.cx = 90;
+            ListView_InsertColumn(hwndListView, 5, &lvCol);
+
+            // Columna "Cliente"
+            char colCliente[] = "Cliente";
+            lvCol.pszText = colCliente;
+            lvCol.cx = 90;
+            ListView_InsertColumn(hwndListView, 6, &lvCol);
+        }
+
+        // Cargar y asignar el menú (si es necesario y aplicable para un diálogo)
+        HMENU hMenu = LoadMenu((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(IDR_MENU3));
+        if (hMenu) {
+            SetMenu(hwnd, hMenu);
+        }
+
+        HWND hwndListBoxProductos = GetDlgItem(hwnd, LIST_REPORTE_PORPRODUCTO);
+        mostrarProductosEnListBox(cabezaProductos, hwndListBoxProductos);
+
+        return TRUE; // Devuelve TRUE para indicar que se ha inicializado correctamente
+    }
+
+    case WM_COMMAND:
+        if (HIWORD(wParam) == LBN_SELCHANGE) { // Detectar cambio de selección en el ListBox
+            HWND hwndListBox = GetDlgItem(hwnd, LIST_REPORTE_PORPRODUCTO);
+            int index = (int)SendMessage(hwndListBox, LB_GETCURSEL, 0, 0); // Obtener el índice seleccionado
+
+            ListView_DeleteAllItems(hwndListView);
+
+            if (index != LB_ERR) {
+                // Recorre la lista de tiendas para encontrar la tienda correspondiente
+                Producto* actual = cabezaProductos;
+                int contador = 0;
+                while (actual != nullptr && contador < index) {
+                    actual = actual->siguiente;
+                    contador++;
+                }
+
+                if (actual != nullptr) {
+                    //aqui ya la encontro
+                    cargarComprasEnListViewProducto(cabezaCompras, hwndListView, actual->codigo);
+                }
+            }
+        }
+        switch (LOWORD(wParam)) {
+        case BTNMENU_DASHBOARD: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
+            break;
+        }
+        case BTNMENU_SALIR: // Si tienes un botón de salir o algo similar
+            EndDialog(hwnd, 0);  // Cierra la ventana de dashboard
+            break;
+
+        case BTNMENU_SALIR_CERRARSESI: {
+            usuarioLogueado = 0;
+            TipoUsuario = -1;
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_LOGIN), hwnd, fVentanaLogin);
+        }break;
+
+        case BTNMENU_EDITAR_CLIENTES: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_CLIENTE), hwnd, fVentanaEClientes);
+        }break;
+
+        case BTNMENU_REGISTRAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_TIENDA), hwnd, fVentanaRTienda);
+        }break;
+
+        case BTNMENU_EDITAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_TIENDA), hwnd, fVentanaETienda);
+        }break;
+
+        case BTNMENU_REGISTRAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_PRODUCTOS), hwnd, fVentanaRProductos);
+        }break;
+
+        case BTNMENU_REPORTE_COMPRA: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTECOMPRAS), hwnd, fVentanaReporteCompra);
+        }break;
+
+        case BTNMENU_REPORTE_PORTIENDA: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORTIENDA), hwnd, fVentanaReporteCompraPorTienda);
+        }break;
+
+        case BTNMENU_REPORTE_PORPRODUCTO: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORPRODUCTO), hwnd, fVentanaReporteCompraPorProducto);
         }break;
 
 
@@ -1305,6 +1734,12 @@ INT_PTR CALLBACK fVentanaDashboardUser(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         }
 
         switch (LOWORD(wParam)) {
+        case BTNMENU2_MISCOMPRAS: {
+            EndDialog(hwnd, IDOK);
+
+            // Abrir la ventana de dashboard (suponiendo que es un diálogo)
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTECOMPRAS), hwnd, fVentanaReporteCompra);
+        }break;
         case BTNMENU2_INICIO: {
             EndDialog(hwnd, IDOK);
 
@@ -2569,5 +3004,155 @@ void cargarComprasEnListView(Compra* cabezaCompras, HWND hwndListView) {
         // Avanzar al siguiente nodo
         actual = actual->siguiente;
         index++; // Aumentar el índice de la fila
+    }
+}
+
+void cargarComprasEnListViewCliente(Compra* cabezaCompras, HWND hwndListView) {
+    Compra* actual = cabezaCompras;
+    int index = 0; // Contador para las filas del ListView
+
+    // Recorremos la lista de compras
+    while (actual != nullptr) {
+        if (actual->idCliente == usuarioLogueado) {
+            LVITEM lvItem = { 0 };
+            lvItem.mask = LVIF_TEXT;
+            lvItem.iItem = index; // Fila
+            lvItem.iSubItem = 0;  // Primera columna (Producto)
+
+            // Convertir el string producto a un arreglo de char
+            char producto[200];  // Asegúrate de que el tamaño sea adecuado
+            strcpy_s(producto, sizeof(producto), actual->producto.c_str());
+            lvItem.pszText = producto;
+
+            ListView_InsertItem(hwndListView, &lvItem);
+
+            // Insertar los datos de cada columna
+            char cantidad[20];
+            char precioTotal[20];
+            char fechaCompra[30];
+            char estatus[30];
+            char tienda[30];
+            char cliente[30];
+
+            // Convertir datos a cadenas de caracteres
+            _itoa(actual->cantidad, cantidad, 10);    // Convertir cantidad a cadena
+            sprintf_s(precioTotal, "%.2f", actual->precioTotal);  // Convertir precioTotal a cadena
+            strcpy_s(fechaCompra, sizeof(fechaCompra), actual->fechaCompra.c_str());
+            strcpy_s(estatus, sizeof(estatus), actual->estatus.c_str());
+            strcpy_s(tienda, sizeof(tienda), actual->tienda.c_str());
+            strcpy_s(cliente, sizeof(cliente), actual->cliente.c_str());
+
+            // Insertar las demás columnas
+            ListView_SetItemText(hwndListView, index, 1, cantidad);    // Cantidad
+            ListView_SetItemText(hwndListView, index, 2, precioTotal);  // Precio Total
+            ListView_SetItemText(hwndListView, index, 3, fechaCompra);  // Fecha Compra
+            ListView_SetItemText(hwndListView, index, 4, estatus);     // Estatus
+            ListView_SetItemText(hwndListView, index, 5, tienda);      // Tienda
+            ListView_SetItemText(hwndListView, index, 6, cliente);     // Cliente
+
+            index++; // Aumentar el índice de la fila
+        }
+        // Avanzar al siguiente nodo
+        actual = actual->siguiente;
+    }
+}
+
+void cargarComprasEnListViewTienda(Compra* cabezaCompras, HWND hwndListView, int tienda) {
+    Compra* actual = cabezaCompras;
+    int index = 0; // Contador para las filas del ListView
+
+    // Recorremos la lista de compras
+    while (actual != nullptr) {
+        if (actual->idTienda == tienda) {
+            LVITEM lvItem = { 0 };
+            lvItem.mask = LVIF_TEXT;
+            lvItem.iItem = index; // Fila
+            lvItem.iSubItem = 0;  // Primera columna (Producto)
+
+            // Convertir el string producto a un arreglo de char
+            char producto[200];  // Asegúrate de que el tamaño sea adecuado
+            strcpy_s(producto, sizeof(producto), actual->producto.c_str());
+            lvItem.pszText = producto;
+
+            ListView_InsertItem(hwndListView, &lvItem);
+
+            // Insertar los datos de cada columna
+            char cantidad[20];
+            char precioTotal[20];
+            char fechaCompra[30];
+            char estatus[30];
+            char tienda[30];
+            char cliente[30];
+
+            // Convertir datos a cadenas de caracteres
+            _itoa(actual->cantidad, cantidad, 10);    // Convertir cantidad a cadena
+            sprintf_s(precioTotal, "%.2f", actual->precioTotal);  // Convertir precioTotal a cadena
+            strcpy_s(fechaCompra, sizeof(fechaCompra), actual->fechaCompra.c_str());
+            strcpy_s(estatus, sizeof(estatus), actual->estatus.c_str());
+            strcpy_s(tienda, sizeof(tienda), actual->tienda.c_str());
+            strcpy_s(cliente, sizeof(cliente), actual->cliente.c_str());
+
+            // Insertar las demás columnas
+            ListView_SetItemText(hwndListView, index, 1, cantidad);    // Cantidad
+            ListView_SetItemText(hwndListView, index, 2, precioTotal);  // Precio Total
+            ListView_SetItemText(hwndListView, index, 3, fechaCompra);  // Fecha Compra
+            ListView_SetItemText(hwndListView, index, 4, estatus);     // Estatus
+            ListView_SetItemText(hwndListView, index, 5, tienda);      // Tienda
+            ListView_SetItemText(hwndListView, index, 6, cliente);     // Cliente
+
+            index++; // Aumentar el índice de la fila
+        }
+        // Avanzar al siguiente nodo
+        actual = actual->siguiente;
+    }
+}
+
+void cargarComprasEnListViewProducto(Compra* cabezaCompras, HWND hwndListView, string producto) {
+    Compra* actual = cabezaCompras;
+    int index = 0; // Contador para las filas del ListView
+
+    // Recorremos la lista de compras
+    while (actual != nullptr) {
+        if (actual->idProducto == producto) {
+            LVITEM lvItem = { 0 };
+            lvItem.mask = LVIF_TEXT;
+            lvItem.iItem = index; // Fila
+            lvItem.iSubItem = 0;  // Primera columna (Producto)
+
+            // Convertir el string producto a un arreglo de char
+            char producto[200];  // Asegúrate de que el tamaño sea adecuado
+            strcpy_s(producto, sizeof(producto), actual->producto.c_str());
+            lvItem.pszText = producto;
+
+            ListView_InsertItem(hwndListView, &lvItem);
+
+            // Insertar los datos de cada columna
+            char cantidad[20];
+            char precioTotal[20];
+            char fechaCompra[30];
+            char estatus[30];
+            char tienda[30];
+            char cliente[30];
+
+            // Convertir datos a cadenas de caracteres
+            _itoa(actual->cantidad, cantidad, 10);    // Convertir cantidad a cadena
+            sprintf_s(precioTotal, "%.2f", actual->precioTotal);  // Convertir precioTotal a cadena
+            strcpy_s(fechaCompra, sizeof(fechaCompra), actual->fechaCompra.c_str());
+            strcpy_s(estatus, sizeof(estatus), actual->estatus.c_str());
+            strcpy_s(tienda, sizeof(tienda), actual->tienda.c_str());
+            strcpy_s(cliente, sizeof(cliente), actual->cliente.c_str());
+
+            // Insertar las demás columnas
+            ListView_SetItemText(hwndListView, index, 1, cantidad);    // Cantidad
+            ListView_SetItemText(hwndListView, index, 2, precioTotal);  // Precio Total
+            ListView_SetItemText(hwndListView, index, 3, fechaCompra);  // Fecha Compra
+            ListView_SetItemText(hwndListView, index, 4, estatus);     // Estatus
+            ListView_SetItemText(hwndListView, index, 5, tienda);      // Tienda
+            ListView_SetItemText(hwndListView, index, 6, cliente);     // Cliente
+
+            index++; // Aumentar el índice de la fila
+        }
+        // Avanzar al siguiente nodo
+        actual = actual->siguiente;
     }
 }

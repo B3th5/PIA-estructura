@@ -25,6 +25,8 @@
 #define IDR_MENU4                       138
 #define DLG_COMPRARPRODUCTO             139
 #define DLG_REPORTECOMPRAS              141
+#define DLG_REPORTE_PORTIENDA           143
+#define DLG_REPORTE_PORPRODUCTO         145
 #define IDC_btn_iniciarsesion           1001
 #define BTN_LOGIN_LOGIN                 1001
 #define IDC_btn_registrarse             1002
@@ -131,6 +133,12 @@
 #define TXT_COMPP_DIRECCION             1118
 #define LBL_COMPP_FECHA                 1119
 #define LISTVIEW_REPORTE_COMPRAS        1120
+#define LIST_REPORTE_PORTIENDA          1121
+#define LISTVIEW_REPORTE_PORTIENDAS     1122
+#define LBL_REPORTE_PORTIENDA           1123
+#define LBL_REPORTE_PORPRODUCTO         1124
+#define LIST_REPORTE_PORPRODUCTO        1125
+#define LISTVIEW_REPORTE_PORPRODUCTO    1126
 #define ID_INICIODESESI40001            40001
 #define ID_PEDIDOS_PEDIDOSDELCLIENTE    40002
 #define ID_VENTAS_VENTASPORTIENDA       40003
@@ -187,14 +195,18 @@
 #define BTNMENU2_INICIO                 40058
 #define ID_REPORTES_COMPRAS             40059
 #define BTNMENU_REPORTE_COMPRA          40060
+#define BTNMENU2_MISCOMPRAS             40063
+#define BTNMENU2_MISENVIOS              40064
+#define BTNMENU_REPORTE_PORTIENDA       40066
+#define BTNMENU_REPORTE_PORPRODUCTO     40069
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        143
-#define _APS_NEXT_COMMAND_VALUE         40061
-#define _APS_NEXT_CONTROL_VALUE         1111
+#define _APS_NEXT_RESOURCE_VALUE        147
+#define _APS_NEXT_COMMAND_VALUE         40070
+#define _APS_NEXT_CONTROL_VALUE         1117
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
