@@ -29,9 +29,10 @@
 #define DLG_REPORTE_PORPRODUCTO         145
 #define DLG_ENVIOS                      147
 #define DLG_EDITAR_PRODUCTO             149
+#define DLG_REGISTER                    151
 #define IDC_btn_iniciarsesion           1001
 #define BTN_LOGIN_LOGIN                 1001
-#define IDC_btn_registrarse             1002
+#define BTN_LOGIN_REGISTER              1002
 #define TXT_LOGIN_USER                  1003
 #define TXT_LOGIN_PASS                  1004
 #define IDC_EDIT1                       1005
@@ -164,6 +165,19 @@
 #define LBL_EDITARPROD_ESTATUS          1148
 #define RB_EDITARPROD_DISPONIBLE        1149
 #define RB_EDITARPROD_NODISPONIBLE      1150
+#define LBL_REGISTRARCLIENTE_REGISTRO   1151
+#define LBL_REGISTRARCLIENTE_NOMBRE     1152
+#define LBL_REGISTRARCLIENTE_AP         1153
+#define LBL_REGISTRARCLIENTE_AM         1154
+#define LBL_REGISTRARCLIENTE_USUARIO    1155
+#define LBL_REGISTRARCLIENTE_PASS       1156
+#define TXT_REGISTRARCLIENTE_NOMBRE     1158
+#define TXT_REGISTRARCLIENTE_AP         1159
+#define TXT_REGISTRARCLIENTE_AM         1160
+#define TXT_REGISTRARCLIENTE_USER       1161
+#define TXT_REGISTRARCLIENTE_PASS       1162
+#define BTN_REGISTRARCLIENTE_CANCELAR   1163
+#define BTN_REGISTRARCLIENTE_REGISTER   1164
 #define ID_INICIODESESI40001            40001
 #define ID_PEDIDOS_PEDIDOSDELCLIENTE    40002
 #define ID_VENTAS_VENTASPORTIENDA       40003
@@ -231,9 +245,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        151
+#define _APS_NEXT_RESOURCE_VALUE        153
 #define _APS_NEXT_COMMAND_VALUE         40074
-#define _APS_NEXT_CONTROL_VALUE         1137
+#define _APS_NEXT_CONTROL_VALUE         1151
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

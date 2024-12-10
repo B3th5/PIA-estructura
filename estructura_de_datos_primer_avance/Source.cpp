@@ -258,6 +258,7 @@ void sortProductos(Producto* cabezaProductos);
 
 
 INT_PTR CALLBACK fVentanaLogin(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK fVentanaRegister(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaDashboard(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaRClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -364,6 +365,68 @@ INT_PTR CALLBACK fVentanaLogin(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
             }
         }
         break;
+        case BTN_LOGIN_REGISTER: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTER), hwnd, fVentanaRegister);
+        }break;
+        }
+        break;
+
+    case WM_DESTROY:
+        PostQuitMessage(9);
+        break;
+    }
+    return FALSE;
+}
+
+INT_PTR CALLBACK fVentanaRegister(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    switch (msg) {
+    case WM_CLOSE:
+        DestroyWindow(hwnd);
+        break;
+
+    case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+        break;
+        case BTN_REGISTRARCLIENTE_CANCELAR: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_LOGIN), hwnd, fVentanaLogin);
+        }break;
+        case BTN_REGISTRARCLIENTE_REGISTER: {
+            // Obtener el texto de los cuadros de texto
+            
+            char nombre[30];
+            char apellidoPaterno[30];
+            char apellidoMaterno[30];
+            char usuario[30];
+            char contrasenia[30];
+
+            GetDlgItemText(hwnd, TXT_REGISTRARCLIENTE_NOMBRE, nombre, sizeof(nombre));
+            GetDlgItemText(hwnd, TXT_REGISTRARCLIENTE_AP, apellidoPaterno, sizeof(apellidoPaterno));
+            GetDlgItemText(hwnd, TXT_REGISTRARCLIENTE_AM, apellidoMaterno, sizeof(apellidoMaterno));
+            GetDlgItemText(hwnd, TXT_REGISTRARCLIENTE_USER, usuario, sizeof(usuario));
+            GetDlgItemText(hwnd, TXT_REGISTRARCLIENTE_PASS, contrasenia, sizeof(contrasenia));
+
+            if (strlen(nombre) == 0 || strlen(apellidoPaterno) == 0 || strlen(usuario) == 0 || strlen(contrasenia) == 0) {
+                MessageBox(hwnd, "Todos los campos son obligatorios", "Error", MB_OK);
+                break;
+            }
+            ultimoID++;
+            raiz = agregarCliente(raiz, ultimoID, nombre, apellidoPaterno, apellidoMaterno, usuario, contrasenia, "Activo", obtenerFechaActual(), 1, 0);
+
+            // Verificar si el cliente fue agregado correctamente
+            if (raiz != nullptr) {
+                MessageBox(hwnd, "Se ha registrado exitosamente.", "Éxito", MB_OK | MB_ICONINFORMATION);
+                EndDialog(hwnd, IDOK);
+
+                DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_LOGIN), hwnd, fVentanaLogin);
+            }
+            else
+                MessageBox(hwnd, "Hubo un error al agregar el cliente.", "Error", MB_OK | MB_ICONERROR);
+
+        }break;
         }
         break;
 
@@ -1333,6 +1396,11 @@ INT_PTR CALLBACK fVentanaReporteCompra(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU2_MISENVIOS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_ENVIOS), hwnd, fVentanaReporteEnvios);
+        }break;
         case BTNMENU_EDITAR_PRODUCTOS: {
             EndDialog(hwnd, IDOK);
 
@@ -2652,6 +2720,24 @@ INT_PTR CALLBACK fVentanaComprar(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                 MessageBox(hwnd, "Datos inválidos. Verifique la cantidad y precio.", "Error", MB_OK | MB_ICONERROR);
                 break;
             }
+            
+            bool maximoDeCantidad = false;
+
+            //verificacion si selecciono mas de las existencias
+            Producto* productoBuscar = cabezaProductos;
+            while (productoBuscar != NULL) {
+                if (productoBuscar->codigo == idProductoComprar) {
+                    if (cantidad > productoBuscar->existencias) {
+                        MessageBox(hwnd, "No hay suficientes productos.", "Error", MB_OK | MB_ICONERROR);
+                        maximoDeCantidad = true;
+                        break;
+                    }
+                }
+                productoBuscar = productoBuscar->siguiente;
+            }
+
+            if (maximoDeCantidad)
+                break;
 
             // Verificar datos obligatorios
             if (strlen(producto) == 0 || strlen(direccion) == 0 || cantidad <= 0 || precioUnitario <= 0.0) {
