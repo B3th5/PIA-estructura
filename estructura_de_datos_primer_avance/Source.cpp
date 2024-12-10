@@ -2732,6 +2732,11 @@ INT_PTR CALLBACK fVentanaComprar(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                         maximoDeCantidad = true;
                         break;
                     }
+                    if (productoBuscar->estatus != "NoDisponible") {
+                        MessageBox(hwnd, "Este producto no esta disponible", "Error", MB_OK | MB_ICONERROR);
+                        maximoDeCantidad = true;
+                        break;
+                    }
                 }
                 productoBuscar = productoBuscar->siguiente;
             }
