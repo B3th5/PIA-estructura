@@ -15,13 +15,14 @@
 using namespace std;
 
 int TipoUsuario = -1;
+int usuarioLogueado = 0;
+string nombreUsuario = "";
+
 //variables para saber el ultimo id registrado
 int ultimoID = 0;
 int ultimoIDTienda = 0;
 int ultimoIdCompra = 0;
 int ultimoIdEnvio = 0;
-
-int usuarioLogueado = 0;
 
 int idClienteEditar = 0;
 int idTiendaEditar = 0;
@@ -33,6 +34,8 @@ string fechaAprox = "";
 
 string clienteComprar;
 string tiendaComprar;
+
+int idEnvioActualizar = -1;
 
 
 // Función para obtener la fecha actual
@@ -158,8 +161,8 @@ struct Envios {
 // Función para agregar un cliente al árbol
 Cliente* agregarCliente(Cliente* raiz, int id, const string& nombre, const string& apellidoPaterno, const string& apellidoMaterno, const string& usuario, const string& contrasenia, const string& estatus, const string& fechaActualizo, int idUsuarioActualizo, int tipoUsuario);
 
-// Función para buscar un cliente en el árbol
-Cliente* buscarCliente(Cliente* raiz, int id);
+// Función para busquedaBinaria 
+Cliente* busquedaBinariaCliente(Cliente* raiz, int id);
 
 // Función para mostrar los clientes en orden (ID en orden ascendente)
 void mostrarClientesEnOrden(Cliente* raiz, HWND hwndListBox);
@@ -237,8 +240,22 @@ Envios* cargarEnvios(const string& nombreArchivo);
 void liberarMemoriaEnvios(Envios*& cabeza);
 
 void cargarEnviosEnListView(Envios* cabezaEnvios, HWND hwndListView);
+void cargarEnviosEnListViewClientes(Envios* cabezaEnvios, HWND hwndListView);
 
 Envios* cabezaEnvios = cargarEnvios("envios.bin");
+
+//-------------------------------------------------------------------METODSO DE ORDENAMIENTO-------------------------------------------------
+// funciones para heapsort para ordenar tiendas
+void heapify(Tienda** arr, int n, int i);
+void heapSort(Tienda** arr, int n);
+void ordenarTiendasPorID(Tienda*& cabeza);
+
+// funciones para quicksort para ordenar productos
+Producto* partition(Producto* low, Producto* high);
+void quickSort(Producto* low, Producto* high);
+Producto* findLastNode(Producto* head);
+void sortProductos(Producto* cabezaProductos);
+
 
 INT_PTR CALLBACK fVentanaLogin(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaDashboard(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -247,6 +264,7 @@ INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 INT_PTR CALLBACK fVentanaRTienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaETienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaRProductos(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK fVentanaEditarProductos(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaReporteCompra(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaReporteCompraPorTienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK fVentanaReporteCompraPorProducto(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -383,6 +401,11 @@ INT_PTR CALLBACK fVentanaDashboard(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_EDITAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_PRODUCTO), hwnd, fVentanaEditarProductos);
+        }break;
         case BTNMENU_ENVIOS: {
             EndDialog(hwnd, IDOK);
 
@@ -476,6 +499,11 @@ INT_PTR CALLBACK fVentanaRClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_EDITAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_PRODUCTO), hwnd, fVentanaEditarProductos);
+        }break;
         case BTNMENU_ENVIOS: {
             EndDialog(hwnd, IDOK);
 
@@ -623,6 +651,11 @@ INT_PTR CALLBACK fVentanaEClientes(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_EDITAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_PRODUCTO), hwnd, fVentanaEditarProductos);
+        }break;
         case BTNMENU_ENVIOS: {
             EndDialog(hwnd, IDOK);
 
@@ -813,6 +846,11 @@ INT_PTR CALLBACK fVentanaRTienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_EDITAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_PRODUCTO), hwnd, fVentanaEditarProductos);
+        }break;
         case BTNMENU_ENVIOS: {
             EndDialog(hwnd, IDOK);
 
@@ -966,6 +1004,11 @@ INT_PTR CALLBACK fVentanaETienda(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             }
         }
         switch (LOWORD(wParam)) {
+        case BTNMENU_EDITAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_PRODUCTO), hwnd, fVentanaEditarProductos);
+        }break;
         case BTNMENU_ENVIOS: {
             EndDialog(hwnd, IDOK);
 
@@ -1074,6 +1117,11 @@ INT_PTR CALLBACK fVentanaRProductos(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_EDITAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_PRODUCTO), hwnd, fVentanaEditarProductos);
+        }break;
         case BTNMENU_ENVIOS: {
             EndDialog(hwnd, IDOK);
 
@@ -1285,6 +1333,11 @@ INT_PTR CALLBACK fVentanaReporteCompra(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case BTNMENU_EDITAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_PRODUCTO), hwnd, fVentanaEditarProductos);
+        }break;
         case BTNMENU_ENVIOS: {
             EndDialog(hwnd, IDOK);
 
@@ -1475,6 +1528,11 @@ INT_PTR CALLBACK fVentanaReporteCompraPorTienda(HWND hwnd, UINT msg, WPARAM wPar
             }
         }
         switch (LOWORD(wParam)) {
+        case BTNMENU_EDITAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_PRODUCTO), hwnd, fVentanaEditarProductos);
+        }break;
         case BTNMENU_ENVIOS: {
             EndDialog(hwnd, IDOK);
 
@@ -1649,6 +1707,11 @@ INT_PTR CALLBACK fVentanaReporteCompraPorProducto(HWND hwnd, UINT msg, WPARAM wP
             }
         }
         switch (LOWORD(wParam)) {
+        case BTNMENU_EDITAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_PRODUCTO), hwnd, fVentanaEditarProductos);
+        }break;
         case BTNMENU_ENVIOS: {
             EndDialog(hwnd, IDOK);
 
@@ -1735,6 +1798,7 @@ INT_PTR CALLBACK fVentanaReporteEnvios(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 
     case WM_INITDIALOG: {
 
+        idEnvioActualizar = -1;
         hwndListView = GetDlgItem(hwnd, LISTVIEW_ENVIOS);
 
         // Verifica que el control exista
@@ -1783,13 +1847,25 @@ INT_PTR CALLBACK fVentanaReporteEnvios(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             ListView_InsertColumn(hwndListView, 5, &lvCol);
         }
 
-        // Cargar y asignar el menú 
-        HMENU hMenu = LoadMenu((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(IDR_MENU3));
-        if (hMenu) {
-            SetMenu(hwnd, hMenu);
-        }
 
-        cargarEnviosEnListView(cabezaEnvios, hwndListView);
+        if (TipoUsuario == 1) {
+
+            HMENU hMenu = LoadMenu((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(IDR_MENU3));
+            if (hMenu) {
+                SetMenu(hwnd, hMenu);
+            }
+
+            cargarEnviosEnListView(cabezaEnvios, hwndListView);
+        }
+        else {
+
+            HMENU hMenu = LoadMenu((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(IDR_MENU4));
+            if (hMenu) {
+                SetMenu(hwnd, hMenu);
+            }
+            cargarEnviosEnListViewClientes(cabezaEnvios, hwndListView);
+        }
+        
 
         return TRUE; // Devuelve TRUE para indicar que se ha inicializado correctamente
     }
@@ -1813,6 +1889,373 @@ INT_PTR CALLBACK fVentanaReporteEnvios(HWND hwnd, UINT msg, WPARAM wParam, LPARA
                 if (actual != nullptr) {
                     //aqui ya la encontro
                     cargarComprasEnListViewProducto(cabezaCompras, hwndListView, actual->codigo);
+                }
+            }
+        }
+        switch (LOWORD(wParam)) {
+        case BTNMENU_EDITAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_PRODUCTO), hwnd, fVentanaEditarProductos);
+        }break;
+        case BTNMENU_DASHBOARD: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHBOARD), hwnd, fVentanaDashboard);
+            break;
+        }
+        case BTNMENU_SALIR: // Si tienes un botón de salir o algo similar
+            EndDialog(hwnd, 0);  // Cierra la ventana de dashboard
+            break;
+
+        case BTNMENU_SALIR_CERRARSESI: {
+            usuarioLogueado = 0;
+            TipoUsuario = -1;
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_LOGIN), hwnd, fVentanaLogin);
+        }break;
+
+        case BTNMENU_EDITAR_CLIENTES: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_CLIENTE), hwnd, fVentanaEClientes);
+        }break;
+
+        case BTNMENU_REGISTRAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_TIENDA), hwnd, fVentanaRTienda);
+        }break;
+
+        case BTNMENU_EDITAR_TIENDAS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_TIENDA), hwnd, fVentanaETienda);
+        }break;
+
+        case BTNMENU_REGISTRAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REGISTRAR_PRODUCTOS), hwnd, fVentanaRProductos);
+        }break;
+
+        case BTNMENU_REPORTE_COMPRA: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTECOMPRAS), hwnd, fVentanaReporteCompra);
+        }break;
+
+        case BTNMENU_REPORTE_PORTIENDA: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORTIENDA), hwnd, fVentanaReporteCompraPorTienda);
+        }break;
+
+        case BTNMENU_REPORTE_PORPRODUCTO: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTE_PORPRODUCTO), hwnd, fVentanaReporteCompraPorProducto);
+        }break;
+        case BTNMENU_ENVIOS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_ENVIOS), hwnd, fVentanaReporteEnvios);
+        }break;
+        case BTN_ENVIOS_CANCELAR: {
+            
+            Envios* buscarEnvio = cabezaEnvios;
+            while (buscarEnvio != NULL) {
+
+                if (buscarEnvio->id == idEnvioActualizar) {
+
+                }
+                buscarEnvio = buscarEnvio->siguiente;
+            }
+            
+            if (!(idEnvioActualizar <= 0)) {
+
+                int respuesta = MessageBox(
+                    hwnd,
+                    "¿Estás seguro de que deseas cancelar el envío?",
+                    "Confirmar Cancelación",
+                    MB_YESNO | MB_ICONQUESTION
+                );
+
+                if (respuesta == IDYES) {
+
+                    bool encontrado = false;
+
+                    Envios* actual = cabezaEnvios;
+
+                    while (actual != NULL) {
+                        if (idEnvioActualizar == actual->id) {
+                            if (actual->estatus != "Entregado") {
+                                actual->estatus = "Cancelado";
+                                encontrado = true;
+
+                                Compra* compraDelCliente = cabezaCompras;
+                                while (compraDelCliente != NULL) {
+                                    if (compraDelCliente->id == actual->idCompra) {
+                                        compraDelCliente->estatus = "Cancelado";
+                                        break;
+                                    }
+                                    compraDelCliente = compraDelCliente->siguiente;
+                                }
+
+
+                                break;
+                            }
+                            else {
+                                MessageBox(hwnd, "Este envio ya se ha entregado", "Advertencia", MB_ICONWARNING);
+                            }
+                        }
+                        actual = actual->siguiente;
+                    }
+
+                    if (!encontrado)
+                        MessageBox(hwnd, "No se pudo realizar la acción.", "Advertencia", MB_ICONWARNING);
+                    else
+                        MessageBox(hwnd, "Envío cancelado con éxito", "Info", MB_ICONINFORMATION);
+
+                    EndDialog(hwnd, IDOK);
+                    DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_ENVIOS), hwnd, fVentanaReporteEnvios);
+                }
+                else {
+                    MessageBox(hwnd, "Cancelación abortada.", "Información", MB_ICONINFORMATION);
+                }
+            }else
+                MessageBox(hwnd, "Por favor selecciona un envio", "Éxito", MB_OK | MB_ICONEXCLAMATION);
+
+        }break;
+        case BTN_ENVIOS_ENTREGADO: {
+
+            if (!(idEnvioActualizar <= 0)) {
+
+                bool encontrado = false;
+                int cantidad = 0;
+
+                Envios* actual = cabezaEnvios;
+
+                while (actual != NULL) {
+                    if (idEnvioActualizar == actual->id) {
+                        
+                        Compra* compraDelCliente = cabezaCompras;
+                        while (compraDelCliente != NULL) {
+                            if (compraDelCliente->id == actual->idCompra) {
+                                cantidad = compraDelCliente->cantidad;
+                                compraDelCliente->estatus = "Entregado";
+                                break;
+                            }
+                            compraDelCliente = compraDelCliente->siguiente;
+                        }
+
+                        Producto* productoRestar = cabezaProductos;
+                        while (productoRestar != NULL) {
+                            if (productoRestar->nombre == actual->producto) {
+                                productoRestar->existencias = productoRestar->existencias - cantidad;
+                                break;
+                            }
+                            productoRestar = productoRestar->siguiente;
+                        }
+
+                        actual->fechaActualizacion = obtenerFechaActual();
+                        actual->estatus = "Entregado";
+                        encontrado = true;
+                        break;
+                    }
+                    actual = actual->siguiente;
+                }
+
+                if (!encontrado)
+                    MessageBox(hwnd, "No se encontró un envío con ese ID.", "Advertencia", MB_ICONWARNING);
+                else
+                    MessageBox(hwnd, "Paquete entregado con éxito", "Info", MB_ICONINFORMATION);
+
+                EndDialog(hwnd, IDOK);
+                DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_ENVIOS), hwnd, fVentanaReporteEnvios);
+
+            }
+            else
+                MessageBox(hwnd, "Por favor selecciona un envio", "Éxito", MB_OK | MB_ICONEXCLAMATION);
+
+        }break;
+        case BTN_ENVIOS_DEVUELTO: {
+
+            if (!(idEnvioActualizar <= 0)) {
+
+                int respuesta = MessageBox(
+                    hwnd,
+                    "¿Estás seguro de que deseas devolver el envío?",
+                    "Confirmar Devolución",
+                    MB_YESNO | MB_ICONQUESTION
+                );
+
+                if (respuesta == IDYES) {
+
+                    bool encontrado = false;
+
+                    Envios* actual = cabezaEnvios;
+
+                    while (actual != NULL) {
+                        if (idEnvioActualizar == actual->id) {
+                            actual->estatus = "Devuelto";
+                            encontrado = true;
+
+                            Compra* compraDelCliente = cabezaCompras;
+                            while (compraDelCliente != NULL) {
+                                if (compraDelCliente->id == actual->idCompra) {
+                                    compraDelCliente->estatus = "Devuelto";
+                                    break;
+                                }
+                                compraDelCliente = compraDelCliente->siguiente;
+                            }
+
+                            break;
+                        }
+                        actual = actual->siguiente;
+                    }
+
+                    if (!encontrado)
+                        MessageBox(hwnd, "No se encontró un envío con ese ID.", "Advertencia", MB_ICONWARNING);
+                    else
+                        MessageBox(hwnd, "Paquete devuelto con éxito", "Info", MB_ICONINFORMATION);
+
+                    EndDialog(hwnd, IDOK);
+                    DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_ENVIOS), hwnd, fVentanaReporteEnvios);
+                }
+                else {
+                    MessageBox(hwnd, "Devolución cancelada.", "Información", MB_ICONINFORMATION);
+                }
+            }
+            else
+                MessageBox(hwnd, "Por favor selecciona un envio", "Éxito", MB_OK | MB_ICONEXCLAMATION);
+
+        }break;
+
+        case BTNMENU2_MISCOMPRAS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_REPORTECOMPRAS), hwnd, fVentanaReporteCompra);
+        }break;
+        case BTNMENU2_INICIO: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_DASHB_USER), hwnd, fVentanaDashboardUser);
+            break;
+        }
+        case BTNMENU2_SALIR:
+            EndDialog(hwnd, 0);
+            break;
+
+        case BTNMENU2_CERRARSESION: {
+            usuarioLogueado = 0;
+            TipoUsuario = -1;
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_LOGIN), hwnd, fVentanaLogin);
+        }break;
+
+        }
+
+        break;
+
+    case WM_NOTIFY: {
+        NMHDR* pNMHDR = reinterpret_cast<NMHDR*>(lParam);
+
+        // Verificar si el evento proviene del ListView
+        if (pNMHDR->hwndFrom == hwndListView && pNMHDR->code == LVN_ITEMCHANGED) {
+            NMLISTVIEW* pNMLV = reinterpret_cast<NMLISTVIEW*>(lParam);
+
+            // Verificar si la fila está seleccionada
+            if (pNMLV->uNewState & LVIS_SELECTED) {
+                int selectedRow = pNMLV->iItem; // Índice de la fila seleccionada
+
+                // Obtener el texto de la columna "Producto" (asumimos que es la columna 0)
+                char producto[200];
+                char id[5];
+                ListView_GetItemText(hwndListView, selectedRow, 1, producto, sizeof(producto));
+                ListView_GetItemText(hwndListView, selectedRow, 0, id, sizeof(id));
+
+                // Establecer el texto en el Label
+                SetDlgItemText(hwnd, LBL_ENVIOS_ENVIO, producto);
+                SetDlgItemText(hwnd, LBL_ENVIOS_ENVIOID, id);
+
+
+                idEnvioActualizar = atoi(id);
+            }
+        }
+        break;
+    }
+
+    case WM_DESTROY:
+        PostQuitMessage(9);
+        break;
+    }
+    return FALSE;
+}
+
+INT_PTR CALLBACK fVentanaEditarProductos(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    switch (msg) {
+    case WM_CLOSE:
+        DestroyWindow(hwnd);
+        break;
+
+    case WM_INITDIALOG: {
+
+        HMENU hMenu = LoadMenu((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(IDR_MENU3));
+        if (hMenu) {
+            SetMenu(hwnd, hMenu);
+        }
+
+        //listar los productos
+        HWND hwndListBoxProductos = GetDlgItem(hwnd, LIST_EDITARPROD_PRODUCTOS);
+        mostrarProductosEnListBoxUsuario(cabezaProductos, hwndListBoxProductos);
+
+        return TRUE; // Devuelve TRUE para indicar que se ha inicializado correctamente
+    }
+
+    case WM_COMMAND:
+        if (HIWORD(wParam) == LBN_SELCHANGE) { // Detectar cambio de selección en el ListBox
+            HWND hwndListBox = GetDlgItem(hwnd, LIST_EDITARPROD_PRODUCTOS);
+            int index = (int)SendMessage(hwndListBox, LB_GETCURSEL, 0, 0); // Obtener el índice seleccionado
+
+            if (index != LB_ERR) {
+                // Recorre la lista de productos para encontrar el producto correspondiente
+                Producto* actual = cabezaProductos;
+                int contador = 0;
+                while (actual != nullptr && contador < index) {
+                    actual = actual->siguiente;
+                    contador++;
+                }
+
+                if (actual != nullptr) {
+                    idProductoComprar = actual->codigo;
+
+                    Tienda* tienda = buscarTienda(cabezaTienda, actual->tienda);
+
+                    string existencia = to_string(actual->existencias);
+                    int precioEntero = static_cast<int>(actual->precio);
+                    double costoEntero = static_cast<int>(actual->costo);
+                    string precio = to_string(precioEntero);
+                    string costo = to_string(costoEntero);
+
+                    // Rellenar los cuadros de texto con la información del producto
+                    SetDlgItemText(hwnd, TXT_EDITARPROD_NOMBRE, actual->nombre.c_str());
+                    SetDlgItemText(hwnd, TXT_EDITARPROD_PRECIO, precio.c_str());
+                    SetDlgItemText(hwnd, TXT_EDITARPROD_COSTO, costo.c_str());
+                    SetDlgItemText(hwnd, TXT_EDITARPROD_EXISTENCIAS, existencia.c_str());
+                    SetDlgItemText(hwnd, LBL_EDITARPROD_FECHAACTU, actual->fechaCambioEstatus.c_str());
+
+                    // Activar el radio button correspondiente según el estado del producto
+                    if (actual->estatus == "Disponible") {
+                        SendDlgItemMessage(hwnd, RB_EDITARPROD_DISPONIBLE, BM_SETCHECK, BST_CHECKED, 0);
+                        SendDlgItemMessage(hwnd, RB_EDITARPROD_NODISPONIBLE, BM_SETCHECK, BST_UNCHECKED, 0);
+                    }
+                    else if (actual->estatus == "NoDisponible") {
+                        SendDlgItemMessage(hwnd, RB_EDITARPROD_DISPONIBLE, BM_SETCHECK, BST_UNCHECKED, 0);
+                        SendDlgItemMessage(hwnd, RB_EDITARPROD_NODISPONIBLE, BM_SETCHECK, BST_CHECKED, 0);
+                    }
                 }
             }
         }
@@ -1881,34 +2324,87 @@ INT_PTR CALLBACK fVentanaReporteEnvios(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 
             DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_ENVIOS), hwnd, fVentanaReporteEnvios);
         }break;
+        case BTNMENU_EDITAR_PRODUCTOS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_EDITAR_PRODUCTO), hwnd, fVentanaEditarProductos);
+        }break;
+
+        case BTN_EDITARPROD_EDITAR: {
+
+            if (idProductoComprar != "null") {
+                // Variables para almacenar los valores
+                char nombre[100];
+                char precio[20];
+                char costo[20];
+                char existencias[20];
+                string estatus;
+
+                // Obtener el texto de los cuadros de texto
+                GetDlgItemText(hwnd, TXT_EDITARPROD_NOMBRE, nombre, sizeof(nombre));
+                GetDlgItemText(hwnd, TXT_EDITARPROD_PRECIO, precio, sizeof(precio));
+                GetDlgItemText(hwnd, TXT_EDITARPROD_COSTO, costo, sizeof(costo));
+                GetDlgItemText(hwnd, TXT_EDITARPROD_EXISTENCIAS, existencias, sizeof(existencias));
+
+                if (strlen(nombre) == 0 || strlen(precio) == 0 || strlen(costo) == 0 || strlen(existencias) == 0) {
+                    MessageBox(hwnd, "Todos los campos deben ser llenados.", "Error", MB_ICONEXCLAMATION);
+                    break;
+                }
+
+                // Determinar el estado según los radiobuttons
+                if (SendDlgItemMessage(hwnd, RB_EDITARPROD_DISPONIBLE, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+                    estatus = "Disponible";
+                }
+                else if (SendDlgItemMessage(hwnd, RB_EDITARPROD_NODISPONIBLE, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+                    estatus = "NoDisponible";
+                }
+
+                // Conversión de strings a tipos adecuados (si es necesario)
+                string nombreProducto = nombre;
+                double precioProducto = atof(precio); // Convertir a double
+                double costoProducto = atof(costo);  // Convertir a double
+                int existenciasProducto = atoi(existencias); // Convertir a entero
+
+                bool seEncontro = false;
+
+                Producto* productoEditar = cabezaProductos;
+                while (productoEditar != NULL) {
+                    if (productoEditar->codigo == idProductoComprar) {
+
+                        productoEditar->nombre = nombreProducto;
+                        productoEditar->precio = precioProducto;
+                        productoEditar->costo = costoProducto;
+                        productoEditar->existencias = existenciasProducto;
+                        productoEditar->estatus = estatus;
+                        productoEditar->fechaCambioEstatus = obtenerFechaActual();
+                        seEncontro = true;
+                        break;
+                    }
+                    productoEditar = productoEditar->siguiente;
+                }
+
+                string mensaje = "Se actualizo el producto exitosamente\nNombre: " + nombreProducto +
+                    "\nPrecio: " + to_string(precioProducto) +
+                    "\nCosto: " + to_string(costoProducto) +
+                    "\nExistencias: " + to_string(existenciasProducto) +
+                    "\nEstatus: " + estatus +
+                    "\nFecha de actualización: " + obtenerFechaActual();
+
+
+                if (seEncontro)
+                    MessageBox(hwnd, mensaje.c_str(), "Información", MB_ICONINFORMATION);
+                else
+                    MessageBox(hwnd, "No se encontro el prodoucto", "Información", MB_ICONEXCLAMATION);
+            }else
+                MessageBox(hwnd, "Debe seleccionar un producto primero", "Información", MB_ICONEXCLAMATION);
+
+
+        }break;
 
 
         }
 
         break;
-
-    case WM_NOTIFY: {
-        NMHDR* pNMHDR = reinterpret_cast<NMHDR*>(lParam);
-
-        // Verificar si el evento proviene del ListView
-        if (pNMHDR->hwndFrom == hwndListView && pNMHDR->code == LVN_ITEMCHANGED) {
-            NMLISTVIEW* pNMLV = reinterpret_cast<NMLISTVIEW*>(lParam);
-
-            // Verificar si la fila está seleccionada
-            if (pNMLV->uNewState & LVIS_SELECTED) {
-                int selectedRow = pNMLV->iItem; // Índice de la fila seleccionada
-
-                // Obtener el texto de la columna "Producto" (asumimos que es la columna 0)
-                char producto[200];
-                ListView_GetItemText(hwndListView, selectedRow, 1, producto, sizeof(producto));
-
-                // Establecer el texto en el Label
-                SetDlgItemText(hwnd, LBL_ENVIOS_ENVIO, producto);
-            }
-        }
-        break;
-    }
-
     case WM_DESTROY:
         PostQuitMessage(9);
         break;
@@ -2009,7 +2505,11 @@ INT_PTR CALLBACK fVentanaDashboardUser(HWND hwnd, UINT msg, WPARAM wParam, LPARA
                 MessageBox(nullptr, "Selecciona un producto primero", "Info", MB_ICONEXCLAMATION);
             }
 
-            break;
+        }break;
+        case BTNMENU2_MISENVIOS: {
+            EndDialog(hwnd, IDOK);
+
+            DialogBox((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(DLG_ENVIOS), hwnd, fVentanaReporteEnvios);
         }break;
 
 
@@ -2239,23 +2739,6 @@ Cliente* agregarCliente(Cliente* raiz, int id, const string& nombre, const strin
     return raiz;
 }
 
-// Función para buscar un cliente en el árbol
-// Función para buscar un cliente en el árbol por ID
-Cliente* buscarCliente(Cliente* raiz, int id) {
-    // Si el árbol está vacío o hemos encontrado el cliente
-    if (raiz == nullptr || raiz->id == id) {
-        return raiz;  // Retorna el cliente encontrado o nullptr si no se encontró
-    }
-
-    // Si el ID a buscar es menor que el ID del nodo actual, busca en el subárbol izquierdo
-    if (id < raiz->id) {
-        return buscarCliente(raiz->izquierda, id);
-    }
-
-    // Si el ID a buscar es mayor que el ID del nodo actual, busca en el subárbol derecho
-    return buscarCliente(raiz->derecha, id);
-}
-
 // Función para mostrar los clientes en orden en un ListBox (solo nombre, apellido paterno y apellido materno)
 void mostrarClientesEnOrden(Cliente* raiz, HWND hwndListBox) {
     if (raiz == nullptr) return;  // Si el árbol está vacío, no hace nada
@@ -2275,7 +2758,7 @@ void mostrarClientesEnOrden(Cliente* raiz, HWND hwndListBox) {
 
 // Función para cambiar el estatus de un // Función para editar los detalles de un cliente
 void editarCliente(Cliente* raiz, int id, const string& nuevoNombre, const string& nuevoApellidoPaterno, const string& nuevoApellidoMaterno, const string& nuevoUsuario, const string& nuevaContrasenia, const string& nuevoEstatus, int tipoUsuario) {
-    Cliente* cliente = buscarCliente(raiz, id);
+    Cliente* cliente = busquedaBinariaCliente(raiz, id);
     if (cliente == nullptr) {
         MessageBox(nullptr, "No se encontro el cliente", "Error", MB_ICONERROR);
         return;
@@ -3587,4 +4070,204 @@ void cargarEnviosEnListView(Envios* cabezaEnvios, HWND hwndListView) {
         actual = actual->siguiente;
         index++; // Incrementar el índice de la fila
     }
+}
+
+void cargarEnviosEnListViewClientes(Envios* cabezaEnvios, HWND hwndListView) {
+    Envios* actual = cabezaEnvios;
+    int index = 0; // Contador para las filas del ListView
+
+    // Recorrer la lista de envíos
+    while (actual != nullptr) {
+
+        if (clienteComprar == actual->cliente) {
+            LVITEM lvItem = { 0 };
+            lvItem.mask = LVIF_TEXT;
+            lvItem.iItem = index; // Índice de la fila
+            lvItem.iSubItem = 0;  // Primera columna (ID)
+
+            // Convertir el ID a un arreglo de char
+            char id[20];
+            _itoa(actual->id, id, 10);
+            lvItem.pszText = id;
+
+            // Insertar la fila inicial con el ID
+            ListView_InsertItem(hwndListView, &lvItem);
+
+            // Preparar las columnas restantes
+            char producto[200];
+            char direccion[200];
+            char estatus[50];
+            char fechaActualizacion[50];
+            char cliente[100];
+
+            strcpy_s(producto, sizeof(producto), actual->producto.c_str());
+            strcpy_s(direccion, sizeof(direccion), actual->direccion.c_str());
+            strcpy_s(estatus, sizeof(estatus), actual->estatus.c_str());
+            strcpy_s(fechaActualizacion, sizeof(fechaActualizacion), actual->fechaActualizacion.c_str());
+            strcpy_s(cliente, sizeof(cliente), actual->cliente.c_str());
+
+            // Insertar los datos en las columnas
+            ListView_SetItemText(hwndListView, index, 1, producto);           // Producto
+            ListView_SetItemText(hwndListView, index, 2, direccion);          // Dirección
+            ListView_SetItemText(hwndListView, index, 3, estatus);           // Estatus
+            ListView_SetItemText(hwndListView, index, 4, fechaActualizacion); // Fecha Actualización
+            ListView_SetItemText(hwndListView, index, 5, cliente);           // Cliente
+
+            // Avanzar al siguiente nodo
+            index++; // Incrementar el índice de la fila
+        }
+        actual = actual->siguiente;
+        
+    }
+}
+
+
+//------------------------------------------------------------METODOS DE ORDENAMIENTO----------------------------------------------------------
+// 
+// 
+// 
+//------------------------------------------------------------HEAPSORT----------------------------------------------------------
+
+void heapify(Tienda** arr, int n, int i) {
+    int largest = i;               // Inicialmente, la raíz es el más grande
+    int left = 2 * i + 1;          // Hijo izquierdo
+    int right = 2 * i + 2;         // Hijo derecho
+
+    // Si el hijo izquierdo es mayor que la raíz
+    if (left < n && arr[left]->id > arr[largest]->id) {
+        largest = left;
+    }
+
+    // Si el hijo derecho es mayor que el más grande hasta ahora
+    if (right < n && arr[right]->id > arr[largest]->id) {
+        largest = right;
+    }
+
+    // Si el más grande no es la raíz
+    if (largest != i) {
+        std::swap(arr[i], arr[largest]); // Intercambiar
+        heapify(arr, n, largest);       // Recursivamente aplicar a la subheap afectada
+    }
+}
+
+void heapSort(Tienda** arr, int n) {
+    // Construir el Max-Heap
+    for (int i = n / 2 - 1; i >= 0; i--) {
+        heapify(arr, n, i);
+    }
+
+    // Extraer elementos del heap uno por uno
+    for (int i = n - 1; i > 0; i--) {
+        std::swap(arr[0], arr[i]); // Mover el mayor al final
+        heapify(arr, i, 0);        // Restaurar el Max-Heap
+    }
+}
+
+void ordenarTiendasPorID(Tienda*& cabeza) {
+    if (cabeza == nullptr) {
+        return; // Lista vacía, no hay nada que ordenar
+    }
+
+    // Paso 1: Convertir la lista ligada a un arreglo
+    std::vector<Tienda*> tiendasArray;
+    Tienda* actual = cabeza;
+    while (actual != nullptr) {
+        tiendasArray.push_back(actual);
+        actual = actual->siguiente;
+    }
+
+    // Paso 2: Aplicar HeapSort al arreglo
+    int n = tiendasArray.size();
+    heapSort(tiendasArray.data(), n);
+
+    // Paso 3: Reconstruir la lista ligada ordenada
+    cabeza = tiendasArray[0];
+    cabeza->anterior = nullptr;
+
+    for (int i = 0; i < n - 1; i++) {
+        tiendasArray[i]->siguiente = tiendasArray[i + 1];
+        tiendasArray[i + 1]->anterior = tiendasArray[i];
+    }
+
+    tiendasArray[n - 1]->siguiente = nullptr; // Último nodo apunta a nullptr
+}
+
+//------------------------------------------------------------QUICKSORT----------------------------------------------------------
+
+// Función para particionar la lista
+Producto* partition(Producto* low, Producto* high) {
+    double pivot = high->precio; // Elegimos el precio del último nodo como pivote
+    Producto* i = low->anterior; // Nodo previo al rango
+
+    for (Producto* j = low; j != high; j = j->siguiente) {
+        if (j->precio <= pivot) {
+            // Mover nodo más pequeño al lado izquierdo del pivote
+            i = (i == nullptr) ? low : i->siguiente; // Avanzar si no es el primero
+            std::swap(j->precio, i->precio);
+            std::swap(j->codigo, i->codigo);
+            std::swap(j->nombre, i->nombre);
+            std::swap(j->costo, i->costo);
+            std::swap(j->existencias, i->existencias);
+            std::swap(j->estatus, i->estatus);
+            std::swap(j->fechaCambioEstatus, i->fechaCambioEstatus);
+            std::swap(j->tienda, i->tienda);
+        }
+    }
+
+    // Colocar el pivote en la posición correcta
+    i = (i == nullptr) ? low : i->siguiente;
+    std::swap(i->precio, high->precio);
+    std::swap(i->codigo, high->codigo);
+    std::swap(i->nombre, high->nombre);
+    std::swap(i->costo, high->costo);
+    std::swap(i->existencias, high->existencias);
+    std::swap(i->estatus, high->estatus);
+    std::swap(i->fechaCambioEstatus, high->fechaCambioEstatus);
+    std::swap(i->tienda, high->tienda);
+
+    return i; // Retornar la nueva posición del pivote
+}
+
+// Función recursiva de QuickSort
+void quickSort(Producto* low, Producto* high) {
+    if (low != nullptr && high != nullptr && low != high && low != high->siguiente) {
+        Producto* pivot = partition(low, high);
+        quickSort(low, pivot->anterior);   // Ordenar la parte izquierda
+        quickSort(pivot->siguiente, high); // Ordenar la parte derecha
+    }
+}
+
+// Función para encontrar el último nodo en la lista
+Producto* findLastNode(Producto* head) {
+    Producto* temp = head;
+    while (temp->siguiente != nullptr) {
+        temp = temp->siguiente;
+    }
+    return temp;
+}
+
+// Función para ordenar la lista usando QuickSort
+void sortProductos(Producto* cabezaProductos) {
+    if (cabezaProductos == nullptr) return;
+
+    Producto* lastNode = findLastNode(cabezaProductos); // Encontrar el último nodo
+    quickSort(cabezaProductos, lastNode);              // Llamar a QuickSort
+}
+
+
+//--------------------------------------------------------------BUSQUEDA BINARIA------------------------------------------------------
+
+Cliente* busquedaBinariaCliente(Cliente* raiz, int id) {
+    // Si el árbol está vacío o hemos encontrado el cliente
+    if (raiz == nullptr || raiz->id == id) {
+        return raiz;  // Retorna el cliente encontrado o nullptr si no se encontró
+    }
+
+    // Si el ID a buscar es menor que el ID del nodo actual, busca en el subárbol izquierdo
+    if (id < raiz->id) {
+        return busquedaBinariaCliente(raiz->izquierda, id);
+    }
+
+    // Si el ID a buscar es mayor que el ID del nodo actual, busca en el subárbol derecho
+    return busquedaBinariaCliente(raiz->derecha, id);
 }

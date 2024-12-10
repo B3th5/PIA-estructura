@@ -28,6 +28,7 @@
 #define DLG_REPORTE_PORTIENDA           143
 #define DLG_REPORTE_PORPRODUCTO         145
 #define DLG_ENVIOS                      147
+#define DLG_EDITAR_PRODUCTO             149
 #define IDC_btn_iniciarsesion           1001
 #define BTN_LOGIN_LOGIN                 1001
 #define IDC_btn_registrarse             1002
@@ -142,6 +143,27 @@
 #define LISTVIEW_REPORTE_PORPRODUCTO    1126
 #define LISTVIEW_ENVIOS                 1127
 #define LBL_ENVIOS_ENVIO                1128
+#define LBL_ENVIOS_ENVIOSELECC          1129
+#define LBL_ENVIOS_ENVIOID              1131
+#define BTN_ENVIOS_ENTREGADO            1132
+#define BTN_ENVIOS_DEVUELTO             1133
+#define BTN_ENVIOS_CANCELAR             1134
+#define LBL_EDITARPROD_FECHA            1135
+#define BTN_EDITARPROD_EDITAR           1136
+#define LIST_EDITARPROD_PRODUCTOS       1137
+#define LBL_EDITARPROD_TITULO           1138
+#define TXT_EDITARPROD_NOMBRE           1139
+#define TXT_EDITARPROD_PRECIO           1140
+#define TXT_EDITARPROD_COSTO            1141
+#define TXT_EDITARPROD_EXISTENCIAS      1142
+#define LBL_EDITARPROD_FECHAACTU        1143
+#define LBL_EDITARPROD_NOMBRE           1144
+#define LBL_EDITARPROD_PRECIO           1145
+#define LBL_EDITARPROD_COSTO            1146
+#define LBL_EDITARPROD_EXISTE           1147
+#define LBL_EDITARPROD_ESTATUS          1148
+#define RB_EDITARPROD_DISPONIBLE        1149
+#define RB_EDITARPROD_NODISPONIBLE      1150
 #define ID_INICIODESESI40001            40001
 #define ID_PEDIDOS_PEDIDOSDELCLIENTE    40002
 #define ID_VENTAS_VENTASPORTIENDA       40003
@@ -203,14 +225,15 @@
 #define BTNMENU_REPORTE_PORTIENDA       40066
 #define BTNMENU_REPORTE_PORPRODUCTO     40069
 #define BTNMENU_ENVIOS                  40071
+#define BTNMENU_EDITAR_PRODUCTOS        40073
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        149
-#define _APS_NEXT_COMMAND_VALUE         40072
-#define _APS_NEXT_CONTROL_VALUE         1119
+#define _APS_NEXT_RESOURCE_VALUE        151
+#define _APS_NEXT_COMMAND_VALUE         40074
+#define _APS_NEXT_CONTROL_VALUE         1137
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
